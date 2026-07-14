@@ -1,0 +1,2746 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor Financeiro - Controle Total</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* ===== LOGIN =====*/
+        .login-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50000;
+        }
+
+        .login-box {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 90%;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        .login-box h1 {
+            color: #667eea;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2em;
+        }
+
+        .login-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .login-tabs button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: #f0f0f0;
+            color: #999;
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .login-tabs button.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .login-form {
+            display: none;
+        }
+
+        .login-form.active {
+            display: block;
+        }
+
+        .login-form .form-group {
+            margin-bottom: 15px;
+        }
+
+        .login-form label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .login-form input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .login-form input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
+        }
+
+        .login-form button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .login-form button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .login-message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .login-message.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .login-message.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .user-info {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-info button {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .user-info button:hover {
+            transform: scale(1.05);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            flex: 1;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            background: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #667eea;
+            transition: all 0.3s ease;
+            font-size: 1em;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            animation: slideUp 0.5s ease-out;
+        }
+
+        .card h3 {
+            color: #667eea;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            opacity: 0.7;
+        }
+
+        .card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .card.income .value {
+            color: #51cf66;
+        }
+
+        .card.expense .value {
+            color: #ff6b6b;
+        }
+
+        .card.balance .value {
+            color: #667eea;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .button-group button {
+            flex: 1;
+        }
+
+        .btn-add {
+            background: #51cf66;
+            color: white;
+        }
+
+        .btn-add:hover {
+            background: #40c057;
+        }
+
+        .btn-delete {
+            background: #ff6b6b;
+            color: white;
+            padding: 8px 12px;
+            min-width: 80px;
+        }
+
+        .btn-export {
+            background: #4ecdc4;
+            color: white;
+        }
+
+        .btn-export:hover {
+            background: #3aa39f;
+        }
+
+        .transaction-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background: #f9f9f9;
+            transition: all 0.3s ease;
+        }
+
+        .transaction-item:hover {
+            background: #f0f0f0;
+            transform: translateX(5px);
+        }
+
+        .transaction-info {
+            flex: 1;
+        }
+
+        .transaction-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .transaction-category {
+            font-size: 0.85em;
+            color: #999;
+        }
+
+        .transaction-date {
+            font-size: 0.85em;
+            color: #999;
+        }
+
+        .transaction-value {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-right: 10px;
+        }
+
+        .transaction-value.income {
+            color: #51cf66;
+        }
+
+        .transaction-value.expense {
+            color: #ff6b6b;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+
+        .goals-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .goal-item {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .goal-name {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s ease;
+        }
+
+        .goal-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 12px 20px;
+            cursor: pointer;
+            color: #999;
+            font-weight: bold;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .theme-toggle {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white !important;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        body.dark-mode {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+
+        body.dark-mode .card,
+        body.dark-mode .section {
+            background: #0f3460;
+            color: #eee;
+        }
+
+        body.dark-mode .card h3,
+        body.dark-mode .section h2,
+        body.dark-mode .transaction-name,
+        body.dark-mode .goal-name {
+            color: #64b5f6;
+        }
+
+        body.dark-mode button {
+            background: #e94560;
+            color: white;
+        }
+
+        body.dark-mode .transaction-item,
+        body.dark-mode .goal-item {
+            background: #1a2847;
+        }
+
+        @media (max-width: 1024px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-state p {
+            font-size: 1.1em;
+        }
+
+        #goalModal {
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <!-- TELA DE CONFIGURAÇÃO (aparece se as chaves do Supabase não foram preenchidas) -->
+    <div id="configScreen" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); z-index: 50000; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: white; padding: 40px; border-radius: 15px; max-width: 560px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <h1 style="color: #667eea; margin-bottom: 20px;">⚙️ Falta configurar o backend</h1>
+            <p style="margin-bottom: 15px; color: #333;">Este app usa o <strong>Supabase</strong> como banco de dados real. Antes de usar, você precisa:</p>
+            <ol style="margin: 0 0 20px 20px; color: #333; line-height: 1.8;">
+                <li>Criar um projeto grátis em <strong>supabase.com</strong></li>
+                <li>Rodar o SQL de configuração no <strong>SQL Editor</strong> do Supabase</li>
+                <li>Copiar a <strong>Project URL</strong> e a <strong>anon public key</strong> em Project Settings → API</li>
+                <li>Editar este arquivo .html: procure por <code>SUPABASE_URL</code> e <code>SUPABASE_ANON_KEY</code> no início do <code>&lt;script&gt;</code> e cole seus valores no lugar de <code>COLE_SUA_URL_AQUI</code> e <code>COLE_SUA_CHAVE_AQUI</code></li>
+                <li>Salve o arquivo e abra de novo</li>
+            </ol>
+            <p style="color: #999; font-size: 0.9em;">Depois disso, qualquer pessoa com o arquivo (ou o link, se você hospedar) vai enxergar os mesmos dados, em tempo real, de qualquer dispositivo.</p>
+        </div>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-box">
+            <h1>🔐 Acesso</h1>
+            
+            <div class="login-tabs">
+                <button class="active" onclick="switchLoginTab('login')">Login</button>
+                <button onclick="switchLoginTab('register')">Registrar</button>
+            </div>
+
+            <!-- LOGIN -->
+            <div id="loginForm" class="login-form active">
+                <div id="loginMessage"></div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="seu@email.com">
+                </div>
+                <div class="form-group">
+                    <label>Senha</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••">
+                </div>
+                <button onclick="login()">🔓 Entrar</button>
+                <div style="text-align: center; margin-top: 15px; font-size: 0.9em; color: #999;">
+                    Demo: email: admin@teste.com | senha: 123456
+                </div>
+            </div>
+
+            <!-- REGISTRO -->
+            <div id="registerForm" class="login-form">
+                <div id="registerMessage"></div>
+                <div class="form-group">
+                    <label>Nome Completo</label>
+                    <input type="text" id="registerName" placeholder="Seu Nome">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="registerEmail" placeholder="seu@email.com">
+                </div>
+                <div class="form-group">
+                    <label>Senha</label>
+                    <input type="password" id="registerPassword" placeholder="••••••••">
+                </div>
+                <div class="form-group">
+                    <label>Confirmar Senha</label>
+                    <input type="password" id="registerConfirm" placeholder="••••••••">
+                </div>
+                <button onclick="register()">📝 Registrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- INFORMAÇÕES DO USUÁRIO -->
+    <div id="userInfoBar" class="user-info" style="display: none;">
+        <span id="backendBadge" style="font-size: 0.8em; padding: 6px 12px; border-radius: 12px;"></span>
+        <span id="userDisplay">Usuário</span>
+        <button onclick="logout()">🚪 Sair</button>
+    </div>
+
+    <!-- LOADING OVERLAY -->
+    <div id="globalLoading" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.35); z-index: 60000; align-items: center; justify-content: center;">
+        <div style="background: white; padding: 25px 35px; border-radius: 15px; font-weight: bold; color: #667eea; display: flex; align-items: center; gap: 12px;">
+            <span style="display:inline-block; width:20px; height:20px; border:3px solid #e0e0e0; border-top-color:#667eea; border-radius:50%; animation: spin 0.8s linear infinite;"></span>
+            Sincronizando dados...
+        </div>
+    </div>
+    <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+
+    <div class="container" id="mainContent" style="display: none;">
+        <header>
+            <h1>💰 Gestor Financeiro</h1>
+            <div class="header-controls">
+                <button onclick="refreshMyData()" title="Sincronizar dados">🔄 Sincronizar</button>
+                <button class="theme-toggle" onclick="toggleTheme()" title="Alternar tema">🌙</button>
+                <button onclick="goBackToMemes()">← Voltar</button>
+            </div>
+        </header>
+
+        <div class="dashboard">
+            <div class="card income">
+                <h3>Receitas</h3>
+                <div class="value" id="totalIncome">R$ 0.00</div>
+            </div>
+            <div class="card expense">
+                <h3>Despesas</h3>
+                <div class="value" id="totalExpense">R$ 0.00</div>
+            </div>
+            <div class="card balance">
+                <h3>Saldo</h3>
+                <div class="value" id="totalBalance">R$ 0.00</div>
+            </div>
+        </div>
+
+        <div id="message"></div>
+
+        <div class="content">
+            <!-- ADICIONAR TRANSAÇÃO -->
+            <div class="section">
+                <h2>➕ Nova Transação</h2>
+                <form onsubmit="addTransaction(event)">
+                    <div class="form-group">
+                        <label>Descrição</label>
+                        <input type="text" id="description" placeholder="Ex: Salário, Conta de água..." required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Tipo</label>
+                            <select id="type" required>
+                                <option value="income">💰 Receita</option>
+                                <option value="expense">💸 Despesa</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Categoria</label>
+                            <select id="category" required>
+                                <option value="salario">Salário</option>
+                                <option value="alimentacao">Alimentação</option>
+                                <option value="transporte">Transporte</option>
+                                <option value="moradia">Moradia</option>
+                                <option value="saude">Saúde</option>
+                                <option value="educacao">Educação</option>
+                                <option value="lazer">Lazer</option>
+                                <option value="utilidades">Utilidades</option>
+                                <option value="outros">Outros</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Valor (R$)</label>
+                            <input type="number" id="amount" placeholder="0.00" step="0.01" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Data</label>
+                            <input type="date" id="date" required>
+                        </div>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn-add">💾 Adicionar</button>
+                        <button type="reset">🔄 Limpar</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TRANSAÇÕES RECENTES -->
+            <div class="section">
+                <h2>📋 Transações Recentes</h2>
+                <div class="transaction-list" id="transactionList">
+                    <div class="empty-state">
+                        <p>Nenhuma transação registrada</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GRÁFICOS E RELATÓRIOS -->
+        <div class="section full-width">
+            <h2>📊 Gráficos e Relatórios</h2>
+            
+            <div class="tabs">
+                <button class="tab-button active" onclick="switchTab('charts')">Gráficos</button>
+                <button class="tab-button" onclick="switchTab('report')">Relatório Detalhado</button>
+                <button class="tab-button" onclick="switchTab('export')">Exportar</button>
+            </div>
+
+            <div id="charts" class="tab-content active">
+                <div class="content" style="margin-top: 0;">
+                    <div>
+                        <h3 style="color: #667eea; margin-bottom: 10px;">Receitas vs Despesas</h3>
+                        <div class="chart-container">
+                            <canvas id="incomeExpenseChart"></canvas>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 style="color: #667eea; margin-bottom: 10px;">Distribuição de Despesas</h3>
+                        <div class="chart-container">
+                            <canvas id="expensePieChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h3 style="color: #667eea; margin-bottom: 10px;">Evolução Mensal</h3>
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div id="report" class="tab-content">
+                <div id="reportContent">
+                    <div class="empty-state">
+                        <p>Gere um relatório após adicionar transações</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="export" class="tab-content">
+                <div class="button-group" style="margin-bottom: 20px;">
+                    <button class="btn-export" onclick="exportCSV()">📥 Exportar CSV</button>
+                    <button class="btn-export" onclick="exportJSON()">📥 Exportar JSON</button>
+                    <button class="btn-export" onclick="printReport()">🖨️ Imprimir</button>
+                </div>
+                <div id="exportPreview"></div>
+            </div>
+        </div>
+
+        <!-- METAS FINANCEIRAS -->
+        <div class="section full-width">
+            <h2>🎯 Metas Financeiras</h2>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <div>
+                    <h3 style="color: #667eea; margin-bottom: 10px;">Adicionar Nova Meta</h3>
+                    <div class="form-group">
+                        <label>Nome da Meta</label>
+                        <input type="text" id="goalName" placeholder="Ex: Viagem, Carro...">
+                    </div>
+                    <div class="form-group">
+                        <label>Valor Alvo (R$)</label>
+                        <input type="number" id="goalAmount" placeholder="0.00" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Data Limite</label>
+                        <input type="date" id="goalDeadline">
+                    </div>
+                    <button class="btn-add" onclick="addGoal()" style="width: 100%;">➕ Adicionar Meta</button>
+                </div>
+
+                <div>
+                    <h3 style="color: #667eea; margin-bottom: 10px;">Suas Metas</h3>
+                    <div class="goals-list" id="goalsList">
+                        <div class="empty-state">
+                            <p>Nenhuma meta criada</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL PARA CONTRIBUIR À META -->
+            <div id="goalModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center;">
+                <div style="background: white; padding: 30px; border-radius: 15px; max-width: 400px; width: 90%;">
+                    <h2 id="modalGoalName" style="color: #667eea; margin-bottom: 20px;"></h2>
+                    
+                    <div class="form-group">
+                        <label>Contribuir com (R$)</label>
+                        <input type="number" id="contributionAmount" placeholder="0.00" step="0.01" min="0" oninput="updateContributionPreview()">
+                    </div>
+
+                    <div style="background: #f0f0f0; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                        <div style="margin-bottom: 10px;">
+                            <strong>Progresso Atual:</strong>
+                            <div id="modalProgress" style="margin-top: 5px;"></div>
+                        </div>
+                        <div>
+                            <strong>Após Contribuição:</strong>
+                            <div id="modalNewProgress" style="margin-top: 5px; color: #51cf66;"></div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-add" onclick="contributeToGoal()" style="flex: 1;">✅ Contribuir</button>
+                        <button onclick="closeGoalModal()" style="flex: 1; background: #ccc; color: #333;">❌ Cancelar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAINEL ADMIN -->
+        <div id="adminPanel" style="display: none;">
+            <div class="section full-width" style="margin-top: 30px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2>👨‍💼 Painel Administrativo</h2>
+                    <button onclick="backToFinancial()" style="background: #667eea; color: white; padding: 10px 15px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold;">← Voltar</button>
+                </div>
+                
+                <div class="tabs" style="margin-bottom: 20px;">
+                    <button class="tab-button active" onclick="switchAdminTab('dashboard')">📊 Dashboard</button>
+                    <button class="tab-button" onclick="switchAdminTab('users')">👥 Usuários</button>
+                    <button class="tab-button" onclick="switchAdminTab('transactions')">💳 Transações</button>
+                    <button class="tab-button" onclick="switchAdminTab('goals')">🎯 Metas</button>
+                    <button class="tab-button" onclick="switchAdminTab('logs')">📋 Logs</button>
+                    <button class="tab-button" onclick="switchAdminTab('backups')">💾 Backups</button>
+                    <button class="tab-button" onclick="switchAdminTab('settings')">⚙️ Config</button>
+                </div>
+
+                <!-- ABA DASHBOARD -->
+                <div id="adminDashboard" class="tab-content active">
+                    <h3 style="color: #667eea; margin-bottom: 20px;">📊 Visão Geral do Sistema</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px;">
+                        <div class="card" style="text-align: center; border-left: 4px solid #667eea;">
+                            <h4 style="color: #667eea;">👥 Total de Usuários</h4>
+                            <div style="font-size: 2.5em; font-weight: bold; color: #667eea;" id="dashTotalUsers">0</div>
+                            <small style="color: #999;" id="dashActiveUsers">0 ativos</small>
+                        </div>
+                        <div class="card" style="text-align: center; border-left: 4px solid #51cf66;">
+                            <h4 style="color: #51cf66;">💰 Receitas Totais</h4>
+                            <div style="font-size: 2.5em; font-weight: bold; color: #51cf66;" id="dashTotalIncome">R$ 0</div>
+                            <small style="color: #999;" id="dashIncomeUsers">0 usuários</small>
+                        </div>
+                        <div class="card" style="text-align: center; border-left: 4px solid #ff6b6b;">
+                            <h4 style="color: #ff6b6b;">💸 Despesas Totais</h4>
+                            <div style="font-size: 2.5em; font-weight: bold; color: #ff6b6b;" id="dashTotalExpense">R$ 0</div>
+                            <small style="color: #999;" id="dashExpenseCount">0 transações</small>
+                        </div>
+                        <div class="card" style="text-align: center; border-left: 4px solid #764ba2;">
+                            <h4 style="color: #764ba2;">🎯 Total de Metas</h4>
+                            <div style="font-size: 2.5em; font-weight: bold; color: #764ba2;" id="dashTotalGoals">0</div>
+                            <small style="color: #999;" id="dashCompletedGoals">0 completas</small>
+                        </div>
+                        <div class="card" style="text-align: center; border-left: 4px solid #4ecdc4;">
+                            <h4 style="color: #4ecdc4;">📝 Total de Logs</h4>
+                            <div style="font-size: 2.5em; font-weight: bold; color: #4ecdc4;" id="dashTotalLogs">0</div>
+                            <small style="color: #999;" id="dashLogsToday">Hoje</small>
+                        </div>
+                        <div class="card" style="text-align: center; border-left: 4px solid #ffd43b;">
+                            <h4 style="color: #ffd43b;">⚠️ Conta Suspensas</h4>
+                            <div style="font-size: 2.5em; font-weight: bold; color: #ffd43b;" id="dashSuspended">0</div>
+                            <small style="color: #999;" id="dashBanned">0 banidas</small>
+                        </div>
+                    </div>
+                    <div style="background: #f9f9f9; padding: 20px; border-radius: 10px;">
+                        <h4 style="color: #667eea; margin-bottom: 15px;">📈 Estatísticas Recentes</h4>
+                        <div id="dashStats" style="font-size: 0.95em; line-height: 1.8; color: #333;"></div>
+                    </div>
+                </div>
+
+                <!-- ABA USUÁRIOS -->
+                <div id="adminUsers" class="tab-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="color: #667eea;">👥 Gerenciar Usuários</h3>
+                        <button onclick="openCreateUserModal()" style="background: #51cf66; color: white; padding: 10px 15px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold;">➕ Criar Usuário</button>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <input type="text" id="userSearchFilter" placeholder="🔍 Filtrar por email ou nome..." style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; margin-bottom: 10px;">
+                        <select id="userStatusFilter" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px;">
+                            <option value="">Todos os status</option>
+                            <option value="ativo">✅ Ativo</option>
+                            <option value="suspenso">⏸️ Suspenso</option>
+                            <option value="banido">🚫 Banido</option>
+                        </select>
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                        <tr style="background: #f0f0f0; border-bottom: 2px solid #667eea;">
+                            <th style="padding: 12px; text-align: left;">Email</th>
+                            <th style="padding: 12px; text-align: left;">Nome</th>
+                            <th style="padding: 12px; text-align: left;">Tipo</th>
+                            <th style="padding: 12px; text-align: left;">Status</th>
+                            <th style="padding: 12px; text-align: left;">Cadastro</th>
+                            <th style="padding: 12px; text-align: left;">Ações</th>
+                        </tr>
+                        <tbody id="usersTable"></tbody>
+                    </table>
+                </div>
+
+                <!-- ABA TRANSAÇÕES -->
+                <div id="adminTransactions" class="tab-content">
+                    <h3 style="color: #667eea; margin-bottom: 15px;">💳 Moderação de Transações</h3>
+                    <div style="margin-bottom: 15px;">
+                        <input type="text" id="transSearchFilter" placeholder="🔍 Filtrar por descrição..." style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; margin-bottom: 10px;">
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr style="background: #f0f0f0; border-bottom: 2px solid #667eea;">
+                            <th style="padding: 12px; text-align: left;">Descrição</th>
+                            <th style="padding: 12px; text-align: left;">Usuário</th>
+                            <th style="padding: 12px; text-align: left;">Tipo</th>
+                            <th style="padding: 12px; text-align: left;">Valor</th>
+                            <th style="padding: 12px; text-align: left;">Data</th>
+                            <th style="padding: 12px; text-align: left;">Ações</th>
+                        </tr>
+                        <tbody id="adminTransTable"></tbody>
+                    </table>
+                </div>
+
+                <!-- ABA METAS -->
+                <div id="adminGoals" class="tab-content">
+                    <h3 style="color: #667eea; margin-bottom: 15px;">🎯 Moderação de Metas</h3>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr style="background: #f0f0f0; border-bottom: 2px solid #667eea;">
+                            <th style="padding: 12px; text-align: left;">Nome</th>
+                            <th style="padding: 12px; text-align: left;">Usuário</th>
+                            <th style="padding: 12px; text-align: left;">Progresso</th>
+                            <th style="padding: 12px; text-align: left;">Prazo</th>
+                            <th style="padding: 12px; text-align: left;">Status</th>
+                            <th style="padding: 12px; text-align: left;">Ações</th>
+                        </tr>
+                        <tbody id="adminGoalsTable"></tbody>
+                    </table>
+                </div>
+
+                <!-- ABA LOGS -->
+                <div id="adminLogs" class="tab-content">
+                    <h3 style="color: #667eea; margin-bottom: 15px;">📋 Histórico de Atividades</h3>
+                    <div style="margin-bottom: 15px;">
+                        <button onclick="clearLogs()" style="background: #ff6b6b; color: white; padding: 10px 15px; margin-right: 10px; border-radius: 8px; border: none; cursor: pointer;">🗑️ Limpar Logs</button>
+                        <select id="logsFilter" onchange="filterLogs(this.value)" style="padding: 10px; border-radius: 8px; border: 2px solid #e0e0e0;">
+                            <option value="">Todos</option>
+                            <option value="Login">Login</option>
+                            <option value="Transação">Transação</option>
+                            <option value="Usuário">Usuário</option>
+                            <option value="Meta">Meta</option>
+                        </select>
+                    </div>
+                    <div id="logsList" style="max-height: 500px; overflow-y: auto;"></div>
+                </div>
+
+                <!-- ABA BACKUPS -->
+                <div id="adminBackups" class="tab-content">
+                    <h3 style="color: #667eea; margin-bottom: 15px;">💾 Gerenciamento de Backups</h3>
+                    <div style="margin-bottom: 20px;">
+                        <button onclick="createBackup()" style="background: #51cf66; color: white; padding: 10px 15px; margin: 5px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold;">➕ Criar Novo Backup</button>
+                        <button onclick="exportAllData()" style="background: #4ecdc4; color: white; padding: 10px 15px; margin: 5px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold;">📥 Exportar Dados</button>
+                    </div>
+                    <h4 style="color: #333; margin-top: 20px; margin-bottom: 15px;">📋 Backups Salvos</h4>
+                    <div id="backupsList" style="display: grid; gap: 10px;"></div>
+                </div>
+
+                <!-- ABA CONFIGURAÇÕES -->
+                <div id="adminSettings" class="tab-content">
+                    <h3 style="color: #667eea; margin-bottom: 15px;">⚙️ Configurações do Sistema</h3>
+                    
+                    <div style="background: #f9f9f9; padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 15px; color: #333;">🔐 Segurança</h4>
+                        <button onclick="changeAdminPassword()" style="background: #667eea; color: white; padding: 10px 15px; margin: 5px; border-radius: 8px; border: none; cursor: pointer;">🔑 Alterar Senha Admin</button>
+                        <button onclick="resetAllData()" style="background: #ff6b6b; color: white; padding: 10px 15px; margin: 5px; border-radius: 8px; border: none; cursor: pointer;">⚠️ Resetar TUDO</button>
+                    </div>
+
+                    <div style="background: #f9f9f9; padding: 20px; border-radius: 10px;">
+                        <h4 style="margin-bottom: 15px; color: #333;">ℹ️ Informações do Sistema</h4>
+                        <p><strong>Versão:</strong> 2.0.0</p>
+                        <p><strong>Data de Criação:</strong> 07/07/2026</p>
+                        <p><strong>Última Atualização:</strong> <span id="lastUpdate">-</span></p>
+                        <p><strong>Total de Registros:</strong> <span id="totalRecords">0</span></p>
+                        <p id="storageInfo" style="font-size: 0.9em; color: #666; margin-top: 10px;"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL CRIAR USUÁRIO -->
+        <div id="createUserModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10001; align-items: center; justify-content: center;">
+            <div style="background: white; padding: 30px; border-radius: 15px; max-width: 420px; width: 90%;">
+                <h2 style="color: #667eea; margin-bottom: 20px;">➕ Criar Novo Usuário</h2>
+                <div id="createUserMessage"></div>
+                <div class="form-group">
+                    <label>Nome Completo</label>
+                    <input type="text" id="newUserName" placeholder="Nome da pessoa">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="newUserEmail" placeholder="email@exemplo.com">
+                </div>
+                <div class="form-group">
+                    <label>Senha</label>
+                    <input type="password" id="newUserPassword" placeholder="Senha inicial">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <select id="newUserRole">
+                            <option value="user">👤 Usuário</option>
+                            <option value="admin">👨‍💼 Admin</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="newUserStatus">
+                            <option value="ativo">✅ Ativo</option>
+                            <option value="suspenso">⏸️ Suspenso</option>
+                            <option value="banido">🚫 Banido</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="btn-add" onclick="createUserAdmin()" style="flex: 1;">✅ Criar Conta</button>
+                    <button onclick="closeCreateUserModal()" style="flex: 1; background: #ccc; color: #333;">❌ Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL DETALHES DO USUÁRIO -->
+        <div id="userDetailModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10001; align-items: center; justify-content: center; overflow-y: auto; padding: 30px 0;">
+            <div style="background: white; padding: 30px; border-radius: 15px; max-width: 850px; width: 92%; max-height: 85vh; overflow-y: auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 id="userDetailTitle" style="color: #667eea;"></h2>
+                    <button onclick="closeUserDetailModal()" style="background: #ccc; color: #333;">✖ Fechar</button>
+                </div>
+                <div id="userDetailContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ======================================================================
+        // CONFIGURAÇÃO DO SUPABASE — cole suas chaves aqui (Project Settings > API)
+        // ======================================================================
+        const SUPABASE_URL = https://fgxpjuzlonxmcyrlycuv.supabase.co/;
+        const SUPABASE_ANON_KEY = sb_publishable_snsgu0qG1NIhOIy0etrEHA_jnkPmz0S;
+        // ======================================================================
+
+        const isConfigured = SUPABASE_URL && SUPABASE_ANON_KEY &&
+            SUPABASE_URL !== 'COLE_SUA_URL_AQUI' && SUPABASE_ANON_KEY !== 'COLE_SUA_CHAVE_AQUI';
+
+        const supabase = isConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+        // ===== MAPEAMENTO DE CAMPOS (banco snake_case -> app camelCase) =====
+        function dbUserToJs(u) {
+            return { id: u.id, email: u.email, password: u.password, name: u.name, role: u.role, status: u.status, createdAt: u.created_at };
+        }
+        function dbTransToJs(t) {
+            return { id: t.id, userId: t.user_id, description: t.description, type: t.type, category: t.category, amount: Number(t.amount), date: t.date };
+        }
+        function dbGoalToJs(g) {
+            return { id: g.id, userId: g.user_id, name: g.name, targetAmount: Number(g.target_amount), currentAmount: Number(g.current_amount), deadline: g.deadline, completed: g.completed };
+        }
+        function dbLogToJs(l) {
+            return { action: l.action, user: l.user_email, timestamp: l.created_at };
+        }
+
+        // ===== CAMADA DE ACESSO AO BANCO (Supabase = backend real hospedado) =====
+        const db = {
+            async getUsers() {
+                const { data, error } = await supabase.from('app_users').select('*').order('id');
+                if (error) { console.error(error); showMessage('❌ Erro ao carregar usuários: ' + error.message, 'error'); return []; }
+                return data.map(dbUserToJs);
+            },
+            async getTransactions() {
+                const { data, error } = await supabase.from('app_transactions').select('*').order('date', { ascending: false });
+                if (error) { console.error(error); return []; }
+                return data.map(dbTransToJs);
+            },
+            async getGoals() {
+                const { data, error } = await supabase.from('app_goals').select('*');
+                if (error) { console.error(error); return []; }
+                return data.map(dbGoalToJs);
+            },
+            async getLogs() {
+                const { data, error } = await supabase.from('app_logs').select('*').order('created_at', { ascending: true });
+                if (error) { console.error(error); return []; }
+                return data.map(dbLogToJs);
+            },
+            async insertUser(u) {
+                const { error } = await supabase.from('app_users').insert({ id: u.id, email: u.email, password: u.password, name: u.name, role: u.role, status: u.status });
+                if (error) throw error;
+            },
+            async updateUser(id, fields) {
+                const dbFields = {};
+                if ('role' in fields) dbFields.role = fields.role;
+                if ('status' in fields) dbFields.status = fields.status;
+                if ('password' in fields) dbFields.password = fields.password;
+                const { error } = await supabase.from('app_users').update(dbFields).eq('id', id);
+                if (error) throw error;
+            },
+            async deleteUser(id) {
+                const { error } = await supabase.from('app_users').delete().eq('id', id);
+                if (error) throw error;
+            },
+            async insertTransaction(t) {
+                const { error } = await supabase.from('app_transactions').insert({ id: t.id, user_id: t.userId, description: t.description, type: t.type, category: t.category, amount: t.amount, date: t.date });
+                if (error) throw error;
+            },
+            async updateTransaction(id, fields) {
+                const { error } = await supabase.from('app_transactions').update(fields).eq('id', id);
+                if (error) throw error;
+            },
+            async deleteTransaction(id) {
+                const { error } = await supabase.from('app_transactions').delete().eq('id', id);
+                if (error) throw error;
+            },
+            async insertGoal(g) {
+                const { error } = await supabase.from('app_goals').insert({ id: g.id, user_id: g.userId, name: g.name, target_amount: g.targetAmount, current_amount: g.currentAmount, deadline: g.deadline, completed: g.completed });
+                if (error) throw error;
+            },
+            async updateGoal(id, fields) {
+                const dbFields = {};
+                if ('currentAmount' in fields) dbFields.current_amount = fields.currentAmount;
+                if ('completed' in fields) dbFields.completed = fields.completed;
+                const { error } = await supabase.from('app_goals').update(dbFields).eq('id', id);
+                if (error) throw error;
+            },
+            async deleteGoal(id) {
+                const { error } = await supabase.from('app_goals').delete().eq('id', id);
+                if (error) throw error;
+            },
+            async insertLog(action, userEmail) {
+                const { error } = await supabase.from('app_logs').insert({ action: action, user_email: userEmail });
+                if (error) console.error(error);
+            },
+            async clearLogs() {
+                const { error } = await supabase.from('app_logs').delete().gt('id', 0);
+                if (error) throw error;
+            },
+            async getBackups() {
+                const { data, error } = await supabase.from('app_backups').select('*').order('id', { ascending: false });
+                if (error) { console.error(error); return []; }
+                return data;
+            },
+            async insertBackup(backupDate, dataObj) {
+                const { error } = await supabase.from('app_backups').insert({ backup_date: backupDate, data: dataObj });
+                if (error) throw error;
+            },
+            async deleteBackupRow(id) {
+                const { error } = await supabase.from('app_backups').delete().eq('id', id);
+                if (error) throw error;
+            },
+            async restoreFromBackup(dataObj) {
+                await supabase.from('app_transactions').delete().gt('id', 0);
+                await supabase.from('app_goals').delete().gt('id', 0);
+                await supabase.from('app_logs').delete().gt('id', 0);
+                await supabase.from('app_users').delete().gt('id', 0);
+
+                if (dataObj.users && dataObj.users.length) {
+                    await supabase.from('app_users').insert(dataObj.users.map(u => ({ id: u.id, email: u.email, password: u.password, name: u.name, role: u.role, status: u.status, created_at: u.createdAt })));
+                }
+                if (dataObj.transactions && dataObj.transactions.length) {
+                    await supabase.from('app_transactions').insert(dataObj.transactions.map(t => ({ id: t.id, user_id: t.userId, description: t.description, type: t.type, category: t.category, amount: t.amount, date: t.date })));
+                }
+                if (dataObj.goals && dataObj.goals.length) {
+                    await supabase.from('app_goals').insert(dataObj.goals.map(g => ({ id: g.id, user_id: g.userId, name: g.name, target_amount: g.targetAmount, current_amount: g.currentAmount, deadline: g.deadline, completed: g.completed })));
+                }
+                if (dataObj.logs && dataObj.logs.length) {
+                    await supabase.from('app_logs').insert(dataObj.logs.map(l => ({ action: l.action, user_email: l.user })));
+                }
+            },
+            async resetData() {
+                await supabase.from('app_transactions').delete().gt('id', 0);
+                await supabase.from('app_goals').delete().gt('id', 0);
+                await supabase.from('app_logs').delete().gt('id', 0);
+            }
+        };
+
+        // ===== VARIÁVEIS GLOBAIS =====
+        let transactions = [];
+        let goals = [];
+        let users = [];
+        let logs = [];
+        let currentUser = null;
+        let currentGoalId = null;
+        let charts = {};
+
+        async function loadAllData() {
+            const [u, t, g, l] = await Promise.all([db.getUsers(), db.getTransactions(), db.getGoals(), db.getLogs()]);
+            users = u;
+            transactions = t;
+            goals = g;
+            logs = l;
+        }
+
+        function showGlobalLoading(show) {
+            const el = document.getElementById('globalLoading');
+            if (el) el.style.display = show ? 'flex' : 'none';
+        }
+
+        function updateBackendBadge() {
+            const badge = document.getElementById('backendBadge');
+            if (!badge) return;
+            badge.textContent = '🌐 Conectado ao Supabase (backend real)';
+            badge.style.background = 'rgba(81, 207, 102, 0.25)';
+        }
+
+        // ===== INICIALIZAÇÃO =====
+        window.addEventListener('load', async function() {
+            if (!isConfigured) {
+                document.getElementById('configScreen').style.display = 'flex';
+                return;
+            }
+            showGlobalLoading(true);
+            updateBackendBadge();
+            try {
+                await loadAllData();
+            } catch (e) {
+                showGlobalLoading(false);
+                alert('❌ Não foi possível conectar ao Supabase. Verifique a URL/chave e se rodou o SQL de configuração.\n\n' + e.message);
+                return;
+            }
+            checkAuth();
+            if (currentUser) {
+                await initializeApp();
+            }
+            showGlobalLoading(false);
+        });
+
+        // ===== AUTENTICAÇÃO =====
+        function checkAuth() {
+            const saved = localStorage.getItem('currentUser');
+            if (saved) {
+                try {
+                    currentUser = JSON.parse(saved);
+                } catch (e) {
+                    currentUser = null;
+                }
+            }
+
+            if (currentUser) {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                document.getElementById('userInfoBar').style.display = 'flex';
+                updateUserDisplay();
+            } else {
+                document.getElementById('loginScreen').style.display = 'flex';
+                document.getElementById('mainContent').style.display = 'none';
+                document.getElementById('userInfoBar').style.display = 'none';
+            }
+        }
+
+        function switchLoginTab(tab) {
+            document.querySelectorAll('.login-form').forEach(f => f.classList.remove('active'));
+            document.querySelectorAll('.login-tabs button').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById(tab + 'Form').classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const msg = document.getElementById('loginMessage');
+
+            if (!email || !password) {
+                msg.textContent = '❌ Preencha email e senha!';
+                msg.className = 'login-message error';
+                return;
+            }
+
+            msg.textContent = '⏳ Verificando...';
+            msg.className = 'login-message';
+
+            const { data: user, error } = await supabase.from('app_users').select('*').eq('email', email).maybeSingle();
+
+            if (error) {
+                msg.textContent = '❌ Erro de conexão: ' + error.message;
+                msg.className = 'login-message error';
+                return;
+            }
+
+            if (user && user.password === password) {
+                if (user.status === 'banido') {
+                    msg.textContent = '❌ Sua conta foi banida!';
+                    msg.className = 'login-message error';
+                    return;
+                }
+                if (user.status === 'suspenso') {
+                    msg.textContent = '❌ Sua conta está suspensa!';
+                    msg.className = 'login-message error';
+                    return;
+                }
+                currentUser = { id: user.id, email: user.email, name: user.name, role: user.role, status: user.status };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                await db.insertLog(`Login realizado por ${currentUser.email}`, currentUser.email);
+                showGlobalLoading(true);
+                await loadAllData();
+                checkAuth();
+                await initializeApp();
+                showGlobalLoading(false);
+                msg.textContent = '';
+            } else {
+                msg.textContent = '❌ Email ou senha inválidos!';
+                msg.className = 'login-message error';
+            }
+        }
+
+        async function register() {
+            const name = document.getElementById('registerName').value;
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const confirm = document.getElementById('registerConfirm').value;
+            const msg = document.getElementById('registerMessage');
+
+            if (!name || !email || !password || !confirm) {
+                msg.textContent = '❌ Preencha todos os campos!';
+                msg.className = 'login-message error';
+                return;
+            }
+
+            if (password !== confirm) {
+                msg.textContent = '❌ As senhas não coincidem!';
+                msg.className = 'login-message error';
+                return;
+            }
+
+            msg.textContent = '⏳ Verificando...';
+            msg.className = 'login-message';
+
+            const { data: existing, error: checkError } = await supabase.from('app_users').select('id').eq('email', email).maybeSingle();
+            if (checkError) {
+                msg.textContent = '❌ Erro de conexão: ' + checkError.message;
+                msg.className = 'login-message error';
+                return;
+            }
+            if (existing) {
+                msg.textContent = '❌ Email já cadastrado!';
+                msg.className = 'login-message error';
+                return;
+            }
+
+            try {
+                await db.insertUser({ id: Date.now(), email: email, password: password, name: name, role: 'user', status: 'ativo' });
+            } catch (e) {
+                msg.textContent = '❌ Erro ao cadastrar: ' + e.message;
+                msg.className = 'login-message error';
+                return;
+            }
+            
+            msg.textContent = '✅ Cadastro realizado! Faça login para continuar.';
+            msg.className = 'login-message success';
+            
+            setTimeout(() => {
+                switchLoginTab('login');
+                document.getElementById('loginEmail').value = email;
+            }, 1500);
+        }
+
+        function logout() {
+            if (confirm('Tem certeza que deseja sair?')) {
+                db.insertLog(`Logout realizado por ${currentUser.email}`, currentUser.email);
+                localStorage.removeItem('currentUser');
+                currentUser = null;
+                checkAuth();
+                location.reload();
+            }
+        }
+
+        function updateUserDisplay() {
+            const role = currentUser.role === 'admin' ? '👨‍💼 Admin' : '👤 Usuário';
+            document.getElementById('userDisplay').textContent = `${currentUser.name} (${role})`;
+            
+            if (currentUser.role === 'admin') {
+                const headerControls = document.querySelector('header .header-controls');
+                if (!headerControls.querySelector('button[data-admin-btn]')) {
+                    const adminBtn = document.createElement('button');
+                    adminBtn.setAttribute('data-admin-btn', 'true');
+                    adminBtn.onclick = function() { toggleAdminPanel(); };
+                    adminBtn.innerHTML = '<span class="emoji">👨‍💼</span> Admin';
+                    adminBtn.style.cssText = 'background: white; border: none; padding: 12px 20px; border-radius: 25px; cursor: pointer; font-weight: bold; color: #667eea; transition: all 0.3s ease; font-size: 1em; margin-left: 10px;';
+                    headerControls.appendChild(adminBtn);
+                }
+            }
+        }
+
+        async function toggleAdminPanel() {
+            const panel = document.getElementById('adminPanel');
+            const mainContent = document.getElementById('mainContent');
+            
+            if (panel.style.display === 'none' || panel.style.display === '') {
+                panel.style.display = 'block';
+                mainContent.style.display = 'none';
+                await loadAdminPanel();
+            } else {
+                panel.style.display = 'none';
+                mainContent.style.display = 'block';
+            }
+        }
+
+        // ===== INICIALIZAR APP =====
+        async function initializeApp() {
+            const savedTheme = localStorage.getItem('financialTheme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+            updateThemeButton();
+            
+            const dateInput = document.getElementById('date');
+            if (dateInput) {
+                dateInput.valueAsDate = new Date();
+            }
+            
+            const userSearch = document.getElementById('userSearchFilter');
+            if (userSearch) {
+                userSearch.addEventListener('input', () => loadUsersTable());
+            }
+            
+            const userStatusFilter = document.getElementById('userStatusFilter');
+            if (userStatusFilter) {
+                userStatusFilter.addEventListener('change', () => loadUsersTable());
+            }
+
+            const transSearch = document.getElementById('transSearchFilter');
+            if (transSearch) {
+                transSearch.addEventListener('input', () => loadAdminTransactions());
+            }
+            
+            updateDashboard();
+            renderTransactions();
+            renderGoals();
+            updateCharts();
+        }
+
+        async function refreshMyData() {
+            showGlobalLoading(true);
+            await loadAllData();
+            updateDashboard();
+            renderTransactions();
+            renderGoals();
+            updateCharts();
+            showGlobalLoading(false);
+            showMessage('🔄 Dados atualizados!', 'success');
+        }
+
+        // ===== ADMIN PANEL =====
+        async function switchAdminTab(tab) {
+            document.querySelectorAll('#adminPanel .tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('#adminPanel .tab-button').forEach(b => b.classList.remove('active'));
+            
+            const tabId = 'admin' + tab.charAt(0).toUpperCase() + tab.slice(1);
+            const tabElement = document.getElementById(tabId);
+            
+            if (tabElement) {
+                tabElement.classList.add('active');
+                event.target.classList.add('active');
+
+                showGlobalLoading(true);
+                await loadAllData();
+                
+                if (tab === 'dashboard') loadAdminDashboard();
+                else if (tab === 'users') loadUsersTable();
+                else if (tab === 'transactions') loadAdminTransactions();
+                else if (tab === 'goals') loadAdminGoals();
+                else if (tab === 'logs') loadLogs();
+                else if (tab === 'backups') await loadBackupsList();
+                showGlobalLoading(false);
+            }
+        }
+
+        function backToFinancial() {
+            document.getElementById('adminPanel').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+        }
+
+        async function loadAdminPanel() {
+            if (currentUser.role !== 'admin') {
+                alert('❌ Acesso negado!');
+                return;
+            }
+
+            showGlobalLoading(true);
+            await loadAllData();
+            loadAdminDashboard();
+            loadUsersTable();
+            loadAdminTransactions();
+            loadAdminGoals();
+            loadLogs();
+            await loadBackupsList();
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleString('pt-BR');
+            showGlobalLoading(false);
+        }
+
+        function loadAdminDashboard() {
+            const activeUsers = users.filter(u => u.status === 'ativo').length;
+            const suspendedUsers = users.filter(u => u.status === 'suspenso').length;
+            const bannedUsers = users.filter(u => u.status === 'banido').length;
+            
+            const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+            const totalExpense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+            const completedGoals = goals.filter(g => g.completed).length;
+            const logsToday = logs.filter(l => new Date(l.timestamp).toDateString() === new Date().toDateString()).length;
+
+            document.getElementById('dashTotalUsers').textContent = users.length;
+            document.getElementById('dashActiveUsers').textContent = activeUsers + ' ativos';
+            document.getElementById('dashTotalIncome').textContent = 'R$ ' + totalIncome.toFixed(2);
+            document.getElementById('dashIncomeUsers').textContent = new Set(transactions.filter(t => t.type === 'income').map(t => t.userId)).size + ' usuários';
+            document.getElementById('dashTotalExpense').textContent = 'R$ ' + totalExpense.toFixed(2);
+            document.getElementById('dashExpenseCount').textContent = transactions.length + ' transações';
+            document.getElementById('dashTotalGoals').textContent = goals.length;
+            document.getElementById('dashCompletedGoals').textContent = completedGoals + ' completas';
+            document.getElementById('dashTotalLogs').textContent = logs.length;
+            document.getElementById('dashLogsToday').textContent = logsToday + ' hoje';
+            document.getElementById('dashSuspended').textContent = suspendedUsers;
+            document.getElementById('dashBanned').textContent = bannedUsers + ' banidas';
+
+            const incomeCount = transactions.filter(t => t.type === 'income').length;
+            const avgTicket = incomeCount > 0 ? (totalIncome / incomeCount) : 0;
+
+            const stats = `
+                <p>💰 <strong>Fluxo de Caixa:</strong> R$ ${(totalIncome - totalExpense).toFixed(2)}</p>
+                <p>📊 <strong>Ticket Médio (receitas):</strong> R$ ${avgTicket.toFixed(2)}</p>
+                <p>👤 <strong>Usuários Ativos:</strong> ${activeUsers}</p>
+                <p>🎯 <strong>Taxa de Conclusão de Metas:</strong> ${(goals.length > 0 ? ((completedGoals / goals.length) * 100).toFixed(1) : 0)}%</p>
+                <p>📝 <strong>Últimas 24h:</strong> ${logsToday} ações registradas</p>
+            `;
+            document.getElementById('dashStats').innerHTML = stats;
+
+            const totalRecords = users.length + transactions.length + goals.length + logs.length;
+            document.getElementById('totalRecords').textContent = totalRecords;
+            document.getElementById('storageInfo').textContent = `🌐 Dados armazenados no Supabase (Postgres real) | ${totalRecords} registros`;
+        }
+
+        function loadUsersTable() {
+            const table = document.getElementById('usersTable');
+            const searchTerm = document.getElementById('userSearchFilter')?.value.toLowerCase() || '';
+            const statusFilter = document.getElementById('userStatusFilter')?.value || '';
+
+            let filtered = users;
+            if (searchTerm) {
+                filtered = filtered.filter(u => u.email.toLowerCase().includes(searchTerm) || u.name.toLowerCase().includes(searchTerm));
+            }
+            if (statusFilter) {
+                filtered = filtered.filter(u => u.status === statusFilter);
+            }
+
+            table.innerHTML = filtered.map(u => `
+                <tr style="border-bottom: 1px solid #e0e0e0;">
+                    <td style="padding: 12px;">${u.email}</td>
+                    <td style="padding: 12px;">${u.name}</td>
+                    <td style="padding: 12px;">
+                        <select onchange="changeUserRole(${u.id}, this.value)" style="padding: 5px; border-radius: 5px;">
+                            <option value="user" ${u.role === 'user' ? 'selected' : ''}>👤 Usuário</option>
+                            <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>👨‍💼 Admin</option>
+                        </select>
+                    </td>
+                    <td style="padding: 12px;">
+                        <select onchange="changeUserStatus(${u.id}, this.value)" style="padding: 5px; border-radius: 5px;">
+                            <option value="ativo" ${u.status === 'ativo' ? 'selected' : ''}>✅ Ativo</option>
+                            <option value="suspenso" ${u.status === 'suspenso' ? 'selected' : ''}>⏸️ Suspenso</option>
+                            <option value="banido" ${u.status === 'banido' ? 'selected' : ''}>🚫 Banido</option>
+                        </select>
+                    </td>
+                    <td style="padding: 12px;">${new Date(u.createdAt).toLocaleDateString('pt-BR')}</td>
+                    <td style="padding: 12px;">
+                        <button onclick="viewUserDetail(${u.id})" style="background: #667eea; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer; margin-right: 5px;">👁️</button>
+                        <button onclick="deleteUser(${u.id})" style="background: #ff6b6b; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer;">🗑️</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function changeUserRole(userId, newRole) {
+            const user = users.find(u => u.id === userId);
+            if (user) {
+                try {
+                    await db.updateUser(userId, { role: newRole });
+                    user.role = newRole;
+                    await db.insertLog(`Papel do usuário ${user.email} alterado para ${newRole}`, currentUser.email);
+                    loadUsersTable();
+                } catch (e) {
+                    alert('❌ Erro: ' + e.message);
+                }
+            }
+        }
+
+        async function changeUserStatus(userId, newStatus) {
+            const user = users.find(u => u.id === userId);
+            if (user) {
+                try {
+                    await db.updateUser(userId, { status: newStatus });
+                    user.status = newStatus;
+                    const statusLabel = { 'ativo': 'Ativo', 'suspenso': 'Suspenso', 'banido': 'Banido' };
+                    await db.insertLog(`Status do usuário ${user.email} alterado para ${statusLabel[newStatus]}`, currentUser.email);
+                    loadUsersTable();
+                } catch (e) {
+                    alert('❌ Erro: ' + e.message);
+                }
+            }
+        }
+
+        async function viewUserDetail(userId) {
+            showGlobalLoading(true);
+            await loadAllData();
+            showGlobalLoading(false);
+
+            const user = users.find(u => u.id === userId);
+            if (!user) return;
+
+            const userTrans = transactions.filter(t => t.userId === userId).sort((a, b) => new Date(b.date) - new Date(a.date));
+            const userGoals = goals.filter(g => g.userId === userId);
+
+            const totalIncome = userTrans.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+            const totalExpense = userTrans.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+            const balance = totalIncome - totalExpense;
+            const statusLabel = { ativo: '✅ Ativo', suspenso: '⏸️ Suspenso', banido: '🚫 Banido' };
+
+            document.getElementById('userDetailTitle').textContent = `👤 ${user.name} (${user.email})`;
+
+            let html = `
+                <div style="background: #f9f9f9; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                    <p><strong>Tipo:</strong> ${user.role === 'admin' ? '👨‍💼 Admin' : '👤 Usuário'}</p>
+                    <p><strong>Status:</strong> ${statusLabel[user.status] || user.status}</p>
+                    <p><strong>Cadastro:</strong> ${new Date(user.createdAt).toLocaleDateString('pt-BR')}</p>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
+                    <div class="card income" style="padding: 15px;"><h3>Receitas</h3><div class="value" style="font-size: 1.3em;">R$ ${totalIncome.toFixed(2)}</div></div>
+                    <div class="card expense" style="padding: 15px;"><h3>Despesas</h3><div class="value" style="font-size: 1.3em;">R$ ${totalExpense.toFixed(2)}</div></div>
+                    <div class="card balance" style="padding: 15px;"><h3>Saldo</h3><div class="value" style="font-size: 1.3em;">R$ ${balance.toFixed(2)}</div></div>
+                </div>
+            `;
+
+            html += `<h3 style="color: #667eea; margin-bottom: 10px;">💳 Transações (${userTrans.length})</h3>`;
+            if (userTrans.length === 0) {
+                html += `<p style="color: #999; margin-bottom: 20px;">Nenhuma transação registrada por este usuário.</p>`;
+            } else {
+                html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 25px;">
+                    <tr style="background: #f0f0f0; border-bottom: 2px solid #667eea;">
+                        <th style="padding: 8px; text-align: left;">Descrição</th>
+                        <th style="padding: 8px; text-align: left;">Categoria</th>
+                        <th style="padding: 8px; text-align: left;">Tipo</th>
+                        <th style="padding: 8px; text-align: right;">Valor</th>
+                        <th style="padding: 8px; text-align: left;">Data</th>
+                    </tr>`;
+                userTrans.forEach(t => {
+                    html += `<tr style="border-bottom: 1px solid #e0e0e0;">
+                        <td style="padding: 8px;">${t.description}</td>
+                        <td style="padding: 8px;">${getCategoryEmoji(t.category)} ${t.category}</td>
+                        <td style="padding: 8px;">${t.type === 'income' ? '📥 Receita' : '📤 Despesa'}</td>
+                        <td style="padding: 8px; text-align: right; color: ${t.type === 'income' ? '#51cf66' : '#ff6b6b'}; font-weight: bold;">R$ ${t.amount.toFixed(2)}</td>
+                        <td style="padding: 8px;">${new Date(t.date).toLocaleDateString('pt-BR')}</td>
+                    </tr>`;
+                });
+                html += `</table>`;
+            }
+
+            html += `<h3 style="color: #667eea; margin-bottom: 10px;">🎯 Metas (${userGoals.length})</h3>`;
+            if (userGoals.length === 0) {
+                html += `<p style="color: #999;">Nenhuma meta criada por este usuário.</p>`;
+            } else {
+                html += `<table style="width: 100%; border-collapse: collapse;">
+                    <tr style="background: #f0f0f0; border-bottom: 2px solid #667eea;">
+                        <th style="padding: 8px; text-align: left;">Nome</th>
+                        <th style="padding: 8px; text-align: left;">Progresso</th>
+                        <th style="padding: 8px; text-align: left;">Prazo</th>
+                        <th style="padding: 8px; text-align: left;">Status</th>
+                    </tr>`;
+                userGoals.forEach(g => {
+                    const progress = (g.currentAmount / g.targetAmount * 100).toFixed(1);
+                    html += `<tr style="border-bottom: 1px solid #e0e0e0;">
+                        <td style="padding: 8px;">${g.name}</td>
+                        <td style="padding: 8px;">R$ ${g.currentAmount.toFixed(2)} / R$ ${g.targetAmount.toFixed(2)} (${progress}%)</td>
+                        <td style="padding: 8px;">${new Date(g.deadline).toLocaleDateString('pt-BR')}</td>
+                        <td style="padding: 8px;">${g.completed ? '✅ Completa' : '⏳ Em progresso'}</td>
+                    </tr>`;
+                });
+                html += `</table>`;
+            }
+
+            document.getElementById('userDetailContent').innerHTML = html;
+            document.getElementById('userDetailModal').style.display = 'flex';
+        }
+
+        function closeUserDetailModal() {
+            document.getElementById('userDetailModal').style.display = 'none';
+        }
+
+        // ===== CRIAR USUÁRIO (ADMIN) =====
+        function openCreateUserModal() {
+            document.getElementById('newUserName').value = '';
+            document.getElementById('newUserEmail').value = '';
+            document.getElementById('newUserPassword').value = '';
+            document.getElementById('newUserRole').value = 'user';
+            document.getElementById('newUserStatus').value = 'ativo';
+            document.getElementById('createUserMessage').innerHTML = '';
+            document.getElementById('createUserModal').style.display = 'flex';
+        }
+
+        function closeCreateUserModal() {
+            document.getElementById('createUserModal').style.display = 'none';
+        }
+
+        async function createUserAdmin() {
+            const name = document.getElementById('newUserName').value.trim();
+            const email = document.getElementById('newUserEmail').value.trim();
+            const password = document.getElementById('newUserPassword').value;
+            const role = document.getElementById('newUserRole').value;
+            const status = document.getElementById('newUserStatus').value;
+            const msgBox = document.getElementById('createUserMessage');
+
+            if (!name || !email || !password) {
+                msgBox.innerHTML = `<div class="login-message error">❌ Preencha nome, email e senha!</div>`;
+                return;
+            }
+
+            msgBox.innerHTML = `<div class="login-message">⏳ Verificando...</div>`;
+
+            const { data: existing, error: checkError } = await supabase.from('app_users').select('id').eq('email', email).maybeSingle();
+            if (checkError) {
+                msgBox.innerHTML = `<div class="login-message error">❌ Erro: ${checkError.message}</div>`;
+                return;
+            }
+            if (existing) {
+                msgBox.innerHTML = `<div class="login-message error">❌ Já existe um usuário com este email!</div>`;
+                return;
+            }
+
+            const newUser = { id: Date.now(), email: email, password: password, name: name, role: role, status: status };
+
+            try {
+                await db.insertUser(newUser);
+            } catch (e) {
+                msgBox.innerHTML = `<div class="login-message error">❌ Erro ao criar: ${e.message}</div>`;
+                return;
+            }
+
+            await db.insertLog(`Usuário ${email} criado pelo admin (${currentUser.email})`, currentUser.email);
+
+            closeCreateUserModal();
+            await loadAllData();
+            loadUsersTable();
+            loadAdminDashboard();
+            alert('✅ Conta criada com sucesso! A pessoa já pode fazer login com este email e senha, de qualquer dispositivo.');
+        }
+
+        async function deleteUser(userId) {
+            if (confirm('❌ Deletar este usuário permanentemente?')) {
+                if (confirm('ATENÇÃO! Isto também deletará todas as suas transações e metas!')) {
+                    const user = users.find(u => u.id === userId);
+                    try {
+                        await db.deleteUser(userId); // cascade apaga transações e metas no banco
+                    } catch (e) {
+                        alert('❌ Erro ao deletar: ' + e.message);
+                        return;
+                    }
+                    await db.insertLog(`Usuário ${user.email} e todos seus dados foram deletados`, currentUser.email);
+                    alert('✅ Usuário deletado!');
+                    await loadAllData();
+                    loadUsersTable();
+                    loadAdminTransactions();
+                    loadAdminGoals();
+                    loadAdminDashboard();
+                }
+            }
+        }
+
+        function loadAdminTransactions() {
+            const table = document.getElementById('adminTransTable');
+            const searchTerm = document.getElementById('transSearchFilter')?.value.toLowerCase() || '';
+
+            let filtered = transactions;
+            if (searchTerm) {
+                filtered = filtered.filter(t => t.description.toLowerCase().includes(searchTerm));
+            }
+
+            table.innerHTML = filtered.map(t => {
+                const user = users.find(u => u.id === t.userId);
+                return `
+                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                        <td style="padding: 12px;">${t.description}</td>
+                        <td style="padding: 12px;">${user ? user.name : 'Usuário deletado'}</td>
+                        <td style="padding: 12px;">${t.type === 'income' ? '📥 Receita' : '📤 Despesa'}</td>
+                        <td style="padding: 12px; color: ${t.type === 'income' ? '#51cf66' : '#ff6b6b'}; font-weight: bold;">R$ ${t.amount.toFixed(2)}</td>
+                        <td style="padding: 12px;">${new Date(t.date).toLocaleDateString('pt-BR')}</td>
+                        <td style="padding: 12px;">
+                            <button onclick="editTransaction(${t.id})" style="background: #667eea; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer; margin-right: 5px;">✏️</button>
+                            <button onclick="deleteTransactionAdmin(${t.id})" style="background: #ff6b6b; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer;">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function editTransaction(transId) {
+            const trans = transactions.find(t => t.id === transId);
+            const newAmount = prompt(`Editar valor de R$ ${trans.amount.toFixed(2)}:`, trans.amount);
+            
+            if (newAmount !== null && newAmount !== '' && !isNaN(newAmount)) {
+                const oldAmount = trans.amount;
+                try {
+                    await db.updateTransaction(transId, { amount: parseFloat(newAmount) });
+                } catch (e) {
+                    alert('❌ Erro: ' + e.message);
+                    return;
+                }
+                trans.amount = parseFloat(newAmount);
+                await db.insertLog(`Transação "${trans.description}" editada de R$ ${oldAmount.toFixed(2)} para R$ ${trans.amount.toFixed(2)}`, currentUser.email);
+                alert('✅ Transação atualizada!');
+                loadAdminTransactions();
+                loadAdminDashboard();
+            }
+        }
+
+        async function deleteTransactionAdmin(transId) {
+            if (confirm('❌ Deletar esta transação?')) {
+                const trans = transactions.find(t => t.id === transId);
+                try {
+                    await db.deleteTransaction(transId);
+                } catch (e) {
+                    alert('❌ Erro: ' + e.message);
+                    return;
+                }
+                transactions = transactions.filter(t => t.id !== transId);
+                await db.insertLog(`Transação "${trans.description}" (R$ ${trans.amount}) deletada pelo admin`, currentUser.email);
+                alert('✅ Transação deletada!');
+                loadAdminTransactions();
+                loadAdminDashboard();
+            }
+        }
+
+        function loadAdminGoals() {
+            const table = document.getElementById('adminGoalsTable');
+
+            table.innerHTML = goals.map(g => {
+                const user = users.find(u => u.id === g.userId);
+                const progress = (g.currentAmount / g.targetAmount * 100).toFixed(1);
+                
+                return `
+                    <tr style="border-bottom: 1px solid #e0e0e0;">
+                        <td style="padding: 12px;">${g.name}</td>
+                        <td style="padding: 12px;">${user ? user.name : 'Usuário deletado'}</td>
+                        <td style="padding: 12px;">
+                            <div style="background: #e0e0e0; height: 8px; border-radius: 5px; overflow: hidden;">
+                                <div style="height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); width: ${progress}%;"></div>
+                            </div>
+                            <small>${progress}%</small>
+                        </td>
+                        <td style="padding: 12px;">${new Date(g.deadline).toLocaleDateString('pt-BR')}</td>
+                        <td style="padding: 12px;">${g.completed ? '✅ Completa' : '⏳ Em progresso'}</td>
+                        <td style="padding: 12px;">
+                            <button onclick="editGoalAdmin(${g.id})" style="background: #667eea; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer; margin-right: 5px;">✏️</button>
+                            <button onclick="deleteGoalAdmin(${g.id})" style="background: #ff6b6b; color: white; padding: 5px 10px; border: none; border-radius: 5px; cursor: pointer;">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function editGoalAdmin(goalId) {
+            const goal = goals.find(g => g.id === goalId);
+            const newAmount = prompt(`Editar progresso de R$ ${goal.currentAmount.toFixed(2)}:`, goal.currentAmount);
+            
+            if (newAmount !== null && newAmount !== '' && !isNaN(newAmount)) {
+                const oldAmount = goal.currentAmount;
+                const parsedAmount = parseFloat(newAmount);
+                const completed = parsedAmount >= goal.targetAmount;
+                try {
+                    await db.updateGoal(goalId, { currentAmount: parsedAmount, completed: completed });
+                } catch (e) {
+                    alert('❌ Erro: ' + e.message);
+                    return;
+                }
+                goal.currentAmount = parsedAmount;
+                goal.completed = completed;
+                await db.insertLog(`Meta "${goal.name}" progresso alterado de R$ ${oldAmount.toFixed(2)} para R$ ${goal.currentAmount.toFixed(2)}`, currentUser.email);
+                alert('✅ Meta atualizada!');
+                loadAdminGoals();
+                loadAdminDashboard();
+            }
+        }
+
+        async function deleteGoalAdmin(goalId) {
+            if (confirm('❌ Deletar esta meta?')) {
+                const goal = goals.find(g => g.id === goalId);
+                try {
+                    await db.deleteGoal(goalId);
+                } catch (e) {
+                    alert('❌ Erro: ' + e.message);
+                    return;
+                }
+                goals = goals.filter(g => g.id !== goalId);
+                await db.insertLog(`Meta "${goal.name}" deletada pelo admin`, currentUser.email);
+                alert('✅ Meta deletada!');
+                loadAdminGoals();
+                loadAdminDashboard();
+            }
+        }
+
+        function loadLogs() {
+            const list = document.getElementById('logsList');
+            const filterValue = document.getElementById('logsFilter')?.value || '';
+
+            let filtered = logs;
+            if (filterValue) {
+                filtered = filtered.filter(l => l.action.includes(filterValue));
+            }
+
+            if (filtered.length === 0) {
+                list.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Nenhum log encontrado</p>';
+                return;
+            }
+
+            list.innerHTML = [...filtered].reverse().map(log => `
+                <div style="background: #f9f9f9; padding: 12px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid #667eea;">
+                    <div style="font-weight: bold; color: #333;">${log.action}</div>
+                    <div style="font-size: 0.85em; color: #999;">🕐 ${new Date(log.timestamp).toLocaleString('pt-BR')} - ${log.user}</div>
+                </div>
+            `).join('');
+        }
+
+        function filterLogs(value) {
+            loadLogs();
+        }
+
+        async function clearLogs() {
+            if (confirm('Tem certeza que deseja limpar todos os logs?')) {
+                try {
+                    await db.clearLogs();
+                } catch (e) {
+                    alert('❌ Erro: ' + e.message);
+                    return;
+                }
+                logs = [];
+                loadLogs();
+                await db.insertLog('Logs limpos pelo administrador', currentUser.email);
+                alert('✅ Logs limpos!');
+            }
+        }
+
+        async function loadBackupsList() {
+            const list = document.getElementById('backupsList');
+            const rows = await db.getBackups();
+            
+            if (rows.length === 0) {
+                list.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Nenhum backup realizado ainda</p>';
+                return;
+            }
+
+            list.innerHTML = rows.map((row, idx) => {
+                const backupSize = (new Blob([JSON.stringify(row.data)]).size / 1024).toFixed(2);
+                const d = row.data;
+                return `
+                    <div style="background: #f9f9f9; padding: 15px; border-radius: 10px; border-left: 4px solid #4ecdc4;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h5 style="margin-bottom: 5px; color: #333;">💾 Backup #${rows.length - idx}</h5>
+                                <small style="color: #999;">${row.backup_date}</small>
+                                <br>
+                                <small style="color: #666;">Tamanho: ${backupSize} KB | Usuários: ${(d.users||[]).length} | Transações: ${(d.transactions||[]).length} | Metas: ${(d.goals||[]).length}</small>
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button onclick="restoreBackup(${row.id})" style="background: #51cf66; color: white; padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">↩️ Restaurar</button>
+                                <button onclick="deleteBackup(${row.id})" style="background: #ff6b6b; color: white; padding: 8px 12px; border: none; border-radius: 5px; cursor: pointer;">🗑️</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function createBackup() {
+            const backupData = { users: users, transactions: transactions, goals: goals, logs: logs };
+            try {
+                await db.insertBackup(new Date().toLocaleString('pt-BR'), backupData);
+            } catch (e) {
+                alert('❌ Erro ao criar backup: ' + e.message);
+                return;
+            }
+            await db.insertLog('Backup do sistema criado pelo admin', currentUser.email);
+            alert('✅ Backup criado com sucesso!');
+            await loadBackupsList();
+            loadAdminDashboard();
+        }
+
+        async function restoreBackup(backupId) {
+            if (confirm('⚠️ Restaurar este backup? Os dados atuais serão substituídos!')) {
+                const rows = await db.getBackups();
+                const row = rows.find(r => r.id === backupId);
+                if (!row) { alert('❌ Backup não encontrado.'); return; }
+                try {
+                    await db.restoreFromBackup(row.data);
+                } catch (e) {
+                    alert('❌ Erro ao restaurar: ' + e.message);
+                    return;
+                }
+                await db.insertLog(`Backup restaurado: ${row.backup_date}`, currentUser.email);
+                alert('✅ Backup restaurado com sucesso!');
+                location.reload();
+            }
+        }
+
+        async function deleteBackup(backupId) {
+            if (confirm('❌ Deletar este backup permanentemente?')) {
+                try {
+                    await db.deleteBackupRow(backupId);
+                } catch (e) {
+                    alert('❌ Erro: ' + e.message);
+                    return;
+                }
+                alert('✅ Backup deletado!');
+                await loadBackupsList();
+            }
+        }
+
+        async function changeAdminPassword() {
+            const currentPassword = prompt('Digite sua senha atual:');
+            if (!currentPassword) return;
+
+            const adminUser = users.find(u => u.id === currentUser.id);
+            if (adminUser.password !== currentPassword) {
+                alert('❌ Senha incorreta!');
+                return;
+            }
+
+            const newPassword = prompt('Digite a nova senha:');
+            if (!newPassword) return;
+
+            try {
+                await db.updateUser(currentUser.id, { password: newPassword });
+            } catch (e) {
+                alert('❌ Erro: ' + e.message);
+                return;
+            }
+            adminUser.password = newPassword;
+            await db.insertLog(`Senha do admin alterada`, currentUser.email);
+            alert('✅ Senha alterada com sucesso!');
+        }
+
+        function exportAllData() {
+            const data = {
+                users: users,
+                transactions: transactions,
+                goals: goals,
+                logs: logs,
+                exportDate: new Date().toLocaleString('pt-BR')
+            };
+
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `backup-sistema-${Date.now()}.json`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            db.insertLog('Todos os dados exportados pelo admin', currentUser.email);
+            alert('✅ Dados exportados!');
+        }
+
+        async function resetAllData() {
+            if (confirm('⚠️ ATENÇÃO! Isto vai deletar TUDO permanentemente. Tem certeza?')) {
+                if (confirm('Tem MUITA certeza? Esta ação não pode ser desfeita!')) {
+                    try {
+                        await db.resetData();
+                    } catch (e) {
+                        alert('❌ Erro: ' + e.message);
+                        return;
+                    }
+                    transactions = [];
+                    goals = [];
+                    logs = [];
+                    await db.insertLog('SISTEMA RESETADO COMPLETAMENTE PELO ADMIN', currentUser.email);
+                    alert('✅ Dados resetados!');
+                    location.reload();
+                }
+            }
+        }
+
+        async function addLog(action) {
+            logs.push({ action: action, timestamp: new Date().toISOString(), user: currentUser ? currentUser.email : 'Sistema' });
+            await db.insertLog(action, currentUser ? currentUser.email : 'Sistema');
+        }
+
+        // ===== FUNÇÕES DE TEMA =====
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('financialTheme', isDark ? 'dark' : 'light');
+            updateThemeButton();
+        }
+
+        function updateThemeButton() {
+            const isDark = document.body.classList.contains('dark-mode');
+            document.querySelector('.theme-toggle').textContent = isDark ? '☀️' : '🌙';
+        }
+
+        // ===== TRANSAÇÕES =====
+        async function addTransaction(event) {
+            event.preventDefault();
+
+            const transaction = {
+                id: Date.now(),
+                userId: currentUser.id,
+                description: document.getElementById('description').value,
+                type: document.getElementById('type').value,
+                category: document.getElementById('category').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                date: document.getElementById('date').value
+            };
+
+            try {
+                await db.insertTransaction(transaction);
+            } catch (e) {
+                showMessage('❌ Erro ao salvar: ' + e.message, 'error');
+                return;
+            }
+            transactions.push(transaction);
+
+            showMessage('✅ Transação adicionada com sucesso!', 'success');
+            event.target.reset();
+            document.getElementById('date').valueAsDate = new Date();
+
+            await addLog(`Transação adicionada: ${transaction.description} (R$ ${transaction.amount})`);
+            updateDashboard();
+            renderTransactions();
+            updateCharts();
+        }
+
+        async function deleteTransaction(id) {
+            if (confirm('Tem certeza que deseja deletar esta transação?')) {
+                try {
+                    await db.deleteTransaction(id);
+                } catch (e) {
+                    showMessage('❌ Erro: ' + e.message, 'error');
+                    return;
+                }
+                transactions = transactions.filter(t => t.id !== id);
+                showMessage('❌ Transação removida!', 'success');
+                updateDashboard();
+                renderTransactions();
+                updateCharts();
+            }
+        }
+
+        function renderTransactions() {
+            const list = document.getElementById('transactionList');
+            
+            const myTransactions = transactions.filter(t => t.userId === currentUser.id);
+
+            if (myTransactions.length === 0) {
+                list.innerHTML = '<div class="empty-state"><p>Nenhuma transação registrada</p></div>';
+                return;
+            }
+
+            const sorted = [...myTransactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            list.innerHTML = sorted.map(t => `
+                <div class="transaction-item">
+                    <div class="transaction-info">
+                        <div class="transaction-name">${t.description}</div>
+                        <div class="transaction-category">📁 ${getCategoryEmoji(t.category)} ${t.category}</div>
+                        <div class="transaction-date">📅 ${new Date(t.date).toLocaleDateString('pt-BR')}</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="transaction-value ${t.type}">
+                            ${t.type === 'income' ? '+' : '-'} R$ ${t.amount.toFixed(2)}
+                        </div>
+                        <button class="btn-delete" onclick="deleteTransaction(${t.id})">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ===== DASHBOARD =====
+        function updateDashboard() {
+            const myTransactions = transactions.filter(t => t.userId === currentUser.id);
+
+            const income = myTransactions
+                .filter(t => t.type === 'income')
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            const expense = myTransactions
+                .filter(t => t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            const balance = income - expense;
+
+            document.getElementById('totalIncome').textContent = `R$ ${income.toFixed(2)}`;
+            document.getElementById('totalExpense').textContent = `R$ ${expense.toFixed(2)}`;
+            document.getElementById('totalBalance').textContent = `R$ ${balance.toFixed(2)}`;
+        }
+
+        // ===== GRÁFICOS =====
+        function updateCharts() {
+            updateIncomeExpenseChart();
+            updateExpensePieChart();
+            updateMonthlyChart();
+            generateReport();
+            generateExportPreview();
+        }
+
+        function getMyTransactions() {
+            return transactions.filter(t => t.userId === currentUser.id);
+        }
+
+        function updateIncomeExpenseChart() {
+            const ctx = document.getElementById('incomeExpenseChart');
+            if (!ctx) return;
+
+            const myTransactions = getMyTransactions();
+            const income = myTransactions
+                .filter(t => t.type === 'income')
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            const expense = myTransactions
+                .filter(t => t.type === 'expense')
+                .reduce((sum, t) => sum + t.amount, 0);
+
+            if (charts.incomeExpense) {
+                charts.incomeExpense.destroy();
+            }
+
+            charts.incomeExpense = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Receitas', 'Despesas'],
+                    datasets: [{
+                        label: 'Valor (R$)',
+                        data: [income, expense],
+                        backgroundColor: ['#51cf66', '#ff6b6b'],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        function updateExpensePieChart() {
+            const ctx = document.getElementById('expensePieChart');
+            if (!ctx) return;
+
+            const myTransactions = getMyTransactions();
+            const expenseByCategory = {};
+            myTransactions
+                .filter(t => t.type === 'expense')
+                .forEach(t => {
+                    expenseByCategory[t.category] = (expenseByCategory[t.category] || 0) + t.amount;
+                });
+
+            const categories = Object.keys(expenseByCategory);
+            const values = Object.values(expenseByCategory);
+            const colors = ['#667eea', '#764ba2', '#f093fb', '#4ecdc4', '#44a08d', '#f38181', '#aa96da', '#fcbad3', '#a8edea'];
+
+            if (charts.expensePie) {
+                charts.expensePie.destroy();
+            }
+
+            charts.expensePie = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: categories,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: colors.slice(0, categories.length)
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+        }
+
+        function updateMonthlyChart() {
+            const ctx = document.getElementById('monthlyChart');
+            if (!ctx) return;
+
+            const myTransactions = getMyTransactions();
+            const monthlyData = {};
+            myTransactions.forEach(t => {
+                const month = new Date(t.date).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+                if (!monthlyData[month]) monthlyData[month] = { income: 0, expense: 0 };
+                if (t.type === 'income') {
+                    monthlyData[month].income += t.amount;
+                } else {
+                    monthlyData[month].expense += t.amount;
+                }
+            });
+
+            const months = Object.keys(monthlyData);
+            const incomeData = months.map(m => monthlyData[m].income);
+            const expenseData = months.map(m => monthlyData[m].expense);
+
+            if (charts.monthly) {
+                charts.monthly.destroy();
+            }
+
+            charts.monthly = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [
+                        {
+                            label: 'Receitas',
+                            data: incomeData,
+                            borderColor: '#51cf66',
+                            backgroundColor: 'rgba(81, 207, 102, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Despesas',
+                            data: expenseData,
+                            borderColor: '#ff6b6b',
+                            backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        // ===== RELATÓRIO =====
+        function generateReport() {
+            const content = document.getElementById('reportContent');
+            const myTransactions = getMyTransactions();
+            
+            if (myTransactions.length === 0) {
+                content.innerHTML = '<div class="empty-state"><p>Nenhuma transação registrada</p></div>';
+                return;
+            }
+
+            const byCategory = {};
+            const byMonth = {};
+
+            myTransactions.forEach(t => {
+                if (!byCategory[t.category]) {
+                    byCategory[t.category] = { income: 0, expense: 0 };
+                }
+                if (t.type === 'income') {
+                    byCategory[t.category].income += t.amount;
+                } else {
+                    byCategory[t.category].expense += t.amount;
+                }
+
+                const month = new Date(t.date).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+                if (!byMonth[month]) {
+                    byMonth[month] = { income: 0, expense: 0, balance: 0 };
+                }
+                if (t.type === 'income') {
+                    byMonth[month].income += t.amount;
+                } else {
+                    byMonth[month].expense += t.amount;
+                }
+                byMonth[month].balance = byMonth[month].income - byMonth[month].expense;
+            });
+
+            let html = '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">';
+
+            html += '<div><h3 style="color: #667eea; margin-bottom: 15px;">Por Categoria</h3>';
+            html += '<table style="width: 100%; border-collapse: collapse;">';
+            html += '<tr style="border-bottom: 2px solid #e0e0e0;"><th style="text-align: left; padding: 10px;">Categoria</th><th style="text-align: right; padding: 10px;">Receita</th><th style="text-align: right; padding: 10px;">Despesa</th></tr>';
+            
+            Object.entries(byCategory).forEach(([cat, data]) => {
+                html += `<tr style="border-bottom: 1px solid #e0e0e0;">
+                    <td style="padding: 10px;">${getCategoryEmoji(cat)} ${cat}</td>
+                    <td style="text-align: right; padding: 10px; color: #51cf66;">R$ ${data.income.toFixed(2)}</td>
+                    <td style="text-align: right; padding: 10px; color: #ff6b6b;">R$ ${data.expense.toFixed(2)}</td>
+                </tr>`;
+            });
+            html += '</table></div>';
+
+            html += '<div><h3 style="color: #667eea; margin-bottom: 15px;">Por Mês</h3>';
+            html += '<table style="width: 100%; border-collapse: collapse;">';
+            html += '<tr style="border-bottom: 2px solid #e0e0e0;"><th style="text-align: left; padding: 10px;">Mês</th><th style="text-align: right; padding: 10px;">Receita</th><th style="text-align: right; padding: 10px;">Despesa</th><th style="text-align: right; padding: 10px;">Saldo</th></tr>';
+            
+            Object.entries(byMonth).forEach(([month, data]) => {
+                const balanceColor = data.balance >= 0 ? '#51cf66' : '#ff6b6b';
+                html += `<tr style="border-bottom: 1px solid #e0e0e0;">
+                    <td style="padding: 10px;">${month}</td>
+                    <td style="text-align: right; padding: 10px; color: #51cf66;">R$ ${data.income.toFixed(2)}</td>
+                    <td style="text-align: right; padding: 10px; color: #ff6b6b;">R$ ${data.expense.toFixed(2)}</td>
+                    <td style="text-align: right; padding: 10px; color: ${balanceColor}; font-weight: bold;">R$ ${data.balance.toFixed(2)}</td>
+                </tr>`;
+            });
+            html += '</table></div></div>';
+
+            content.innerHTML = html;
+        }
+
+        // ===== EXPORTAR =====
+        function generateExportPreview() {
+            const preview = document.getElementById('exportPreview');
+            const myTransactions = getMyTransactions();
+            
+            if (myTransactions.length === 0) {
+                preview.innerHTML = '<div class="empty-state"><p>Nenhuma transação para exportar</p></div>';
+                return;
+            }
+
+            let html = '<h3 style="color: #667eea; margin-bottom: 15px;">Prévia de Exportação</h3>';
+            html += '<table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">';
+            html += '<tr style="background: #f0f0f0; border-bottom: 2px solid #667eea;"><th style="padding: 10px; text-align: left;">Data</th><th style="padding: 10px; text-align: left;">Descrição</th><th style="padding: 10px; text-align: left;">Categoria</th><th style="padding: 10px; text-align: left;">Tipo</th><th style="padding: 10px; text-align: right;">Valor</th></tr>';
+            
+            const sorted = [...myTransactions].sort((a, b) => new Date(b.date) - new Date(a.date));
+            sorted.forEach(t => {
+                const date = new Date(t.date).toLocaleDateString('pt-BR');
+                html += `<tr style="border-bottom: 1px solid #e0e0e0;">
+                    <td style="padding: 10px;">${date}</td>
+                    <td style="padding: 10px;">${t.description}</td>
+                    <td style="padding: 10px;">${t.category}</td>
+                    <td style="padding: 10px;">${t.type === 'income' ? '💰 Receita' : '💸 Despesa'}</td>
+                    <td style="padding: 10px; text-align: right;">R$ ${t.amount.toFixed(2)}</td>
+                </tr>`;
+            });
+            html += '</table>';
+
+            preview.innerHTML = html;
+        }
+
+        function exportCSV() {
+            const myTransactions = getMyTransactions();
+            if (myTransactions.length === 0) {
+                alert('Nenhuma transação para exportar!');
+                return;
+            }
+
+            let csv = 'Data,Descrição,Categoria,Tipo,Valor\n';
+            myTransactions.forEach(t => {
+                const date = new Date(t.date).toLocaleDateString('pt-BR');
+                csv += `${date},"${t.description}","${t.category}","${t.type === 'income' ? 'Receita' : 'Despesa'}",${t.amount.toFixed(2)}\n`;
+            });
+
+            downloadFile(csv, 'financeiro.csv', 'text/csv');
+            showMessage('✅ CSV exportado com sucesso!', 'success');
+        }
+
+        function exportJSON() {
+            const myTransactions = getMyTransactions();
+            if (myTransactions.length === 0) {
+                alert('Nenhuma transação para exportar!');
+                return;
+            }
+
+            const data = {
+                exportDate: new Date().toLocaleDateString('pt-BR'),
+                transactions: myTransactions,
+                summary: {
+                    totalIncome: myTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0),
+                    totalExpense: myTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+                }
+            };
+
+            const json = JSON.stringify(data, null, 2);
+            downloadFile(json, 'financeiro.json', 'application/json');
+            showMessage('✅ JSON exportado com sucesso!', 'success');
+        }
+
+        function downloadFile(content, filename, type) {
+            const blob = new Blob([content], { type: type });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function printReport() {
+            window.print();
+        }
+
+        // ===== METAS =====
+        async function addGoal() {
+            const name = document.getElementById('goalName').value;
+            const amount = parseFloat(document.getElementById('goalAmount').value);
+            const deadline = document.getElementById('goalDeadline').value;
+
+            if (!name || !amount || !deadline) {
+                showMessage('❌ Preencha todos os campos!', 'error');
+                return;
+            }
+
+            const goal = {
+                id: Date.now(),
+                userId: currentUser.id,
+                name: name,
+                targetAmount: amount,
+                currentAmount: 0,
+                deadline: deadline,
+                completed: false
+            };
+
+            try {
+                await db.insertGoal(goal);
+            } catch (e) {
+                showMessage('❌ Erro ao salvar: ' + e.message, 'error');
+                return;
+            }
+            goals.push(goal);
+
+            showMessage('✅ Meta adicionada com sucesso!', 'success');
+            document.getElementById('goalName').value = '';
+            document.getElementById('goalAmount').value = '';
+            document.getElementById('goalDeadline').value = '';
+
+            renderGoals();
+        }
+
+        async function deleteGoal(id) {
+            if (confirm('Deletar esta meta?')) {
+                try {
+                    await db.deleteGoal(id);
+                } catch (e) {
+                    showMessage('❌ Erro: ' + e.message, 'error');
+                    return;
+                }
+                goals = goals.filter(g => g.id !== id);
+                showMessage('❌ Meta removida!', 'success');
+                renderGoals();
+            }
+        }
+
+        // ===== CONTRIBUIÇÕES DE METAS =====
+        function openGoalModal(goalId) {
+            currentGoalId = goalId;
+            const goal = goals.find(g => g.id === goalId);
+            
+            document.getElementById('modalGoalName').textContent = `💰 ${goal.name}`;
+            document.getElementById('contributionAmount').value = '';
+            document.getElementById('contributionAmount').focus();
+            
+            updateContributionPreview();
+            document.getElementById('goalModal').style.display = 'flex';
+        }
+
+        function closeGoalModal() {
+            document.getElementById('goalModal').style.display = 'none';
+            currentGoalId = null;
+        }
+
+        function updateContributionPreview() {
+            if (!currentGoalId) return;
+            
+            const goal = goals.find(g => g.id === currentGoalId);
+            if (!goal) return;
+            
+            const contribution = parseFloat(document.getElementById('contributionAmount').value) || 0;
+            const newAmount = goal.currentAmount + contribution;
+            const newPercentage = (newAmount / goal.targetAmount) * 100;
+
+            document.getElementById('modalProgress').innerHTML = `
+                <div style="font-size: 0.9em;">
+                    <div>R$ ${goal.currentAmount.toFixed(2)} de R$ ${goal.targetAmount.toFixed(2)}</div>
+                    <div>${((goal.currentAmount / goal.targetAmount) * 100).toFixed(0)}%</div>
+                </div>
+            `;
+
+            document.getElementById('modalNewProgress').innerHTML = `
+                <div style="font-size: 0.9em;">
+                    <div>R$ ${newAmount.toFixed(2)} de R$ ${goal.targetAmount.toFixed(2)}</div>
+                    <div>${Math.min(newPercentage, 100).toFixed(0)}%</div>
+                </div>
+            `;
+        }
+
+        async function contributeToGoal() {
+            const contribution = parseFloat(document.getElementById('contributionAmount').value);
+
+            if (!contribution || contribution <= 0) {
+                showMessage('❌ Digite um valor válido!', 'error');
+                return;
+            }
+
+            const goal = goals.find(g => g.id === currentGoalId);
+            const newAmount = goal.currentAmount + contribution;
+            const completed = newAmount >= goal.targetAmount;
+
+            try {
+                await db.updateGoal(goal.id, { currentAmount: newAmount, completed: completed });
+            } catch (e) {
+                showMessage('❌ Erro: ' + e.message, 'error');
+                return;
+            }
+
+            goal.currentAmount = newAmount;
+            if (completed) {
+                goal.completed = true;
+                showMessage(`🎉 Parabéns! Meta "${goal.name}" atingida!`, 'success');
+            } else {
+                showMessage(`✅ Contribuição adicionada! Faltam R$ ${(goal.targetAmount - goal.currentAmount).toFixed(2)}`, 'success');
+            }
+
+            closeGoalModal();
+            renderGoals();
+            updateCharts();
+        }
+
+        function renderGoals() {
+            const list = document.getElementById('goalsList');
+            const myGoals = goals.filter(g => g.userId === currentUser.id);
+            
+            if (myGoals.length === 0) {
+                list.innerHTML = '<div class="empty-state" style="grid-column: 1/-1;"><p>Nenhuma meta criada</p></div>';
+                return;
+            }
+
+            list.innerHTML = myGoals.map(g => {
+                const percentage = (g.currentAmount / g.targetAmount) * 100;
+                const days = Math.ceil((new Date(g.deadline) - new Date()) / (1000 * 60 * 60 * 24));
+                const isCompleted = g.currentAmount >= g.targetAmount;
+
+                return `
+                    <div class="goal-item" style="${isCompleted ? 'background: #d4edda; border-left-color: #51cf66;' : ''}">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                            <div>
+                                <div class="goal-name">${g.name} ${isCompleted ? '✅' : ''}</div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn-add" onclick="openGoalModal(${g.id})" style="padding: 8px 12px; font-size: 0.9em;">💰 Contribuir</button>
+                                <button class="btn-delete" onclick="deleteGoal(${g.id})">🗑️</button>
+                            </div>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${Math.min(percentage, 100)}%; background: ${isCompleted ? '#51cf66' : 'linear-gradient(90deg, #667eea, #764ba2)'}"></div>
+                        </div>
+                        <div class="goal-info">
+                            <span>R$ ${g.currentAmount.toFixed(2)} de R$ ${g.targetAmount.toFixed(2)}</span>
+                            <span>${Math.min(percentage, 100).toFixed(0)}%</span>
+                        </div>
+                        <div class="goal-info" style="margin-top: 8px; font-size: 0.8em;">
+                            <span>📅 ${days > 0 ? days + ' dias' : '⚠️ Prazo expirado'}</span>
+                            <span style="color: ${isCompleted ? '#51cf66' : '#667eea'};">Faltam R$ ${Math.max(0, g.targetAmount - g.currentAmount).toFixed(2)}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ===== UTILITÁRIOS =====
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById(tab).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function getCategoryEmoji(category) {
+            const emojis = {
+                salario: '💼',
+                alimentacao: '🍽️',
+                transporte: '🚗',
+                moradia: '🏠',
+                saude: '⚕️',
+                educacao: '📚',
+                lazer: '🎮',
+                utilidades: '💡',
+                outros: '📦'
+            };
+            return emojis[category] || '📁';
+        }
+
+        function showMessage(text, type) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = `message ${type}`;
+            setTimeout(() => {
+                msg.textContent = '';
+                msg.className = 'message';
+            }, 3000);
+        }
+
+        function goBackToMemes() {
+            window.close();
+        }
+
+    </script>
+</body>
+</html>
