@@ -1096,14 +1096,14 @@
         // ======================================================================
         // CONFIGURAÇÃO DO SUPABASE — cole suas chaves aqui (Project Settings > API)
         // ======================================================================
-        const SUPABASE_URL = 'https://fgxpjuzlonxmcyrlycuv.supabase.co/';
+        const SUPABASE_URL = 'https://fgxpjuzlonxmcyrlycuv.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_snsgu0qG1NIhOIy0etrEHA_jnkPmz0S';
         // ======================================================================
 
         const isConfigured = SUPABASE_URL && SUPABASE_ANON_KEY &&
             SUPABASE_URL !== 'COLE_SUA_URL_AQUI' && SUPABASE_ANON_KEY !== 'COLE_SUA_CHAVE_AQUI';
 
-        const supabase = isConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+        const supabaseClient = isConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
         // ===== MAPEAMENTO DE CAMPOS (banco snake_case -> app camelCase) =====
         function dbUserToJs(u) {
@@ -1122,27 +1122,27 @@
         // ===== CAMADA DE ACESSO AO BANCO (Supabase = backend real hospedado) =====
         const db = {
             async getUsers() {
-                const { data, error } = await supabase.from('app_users').select('*').order('id');
+                const { data, error } = await supabaseClient.from('app_users').select('*').order('id');
                 if (error) { console.error(error); showMessage('❌ Erro ao carregar usuários: ' + error.message, 'error'); return []; }
                 return data.map(dbUserToJs);
             },
             async getTransactions() {
-                const { data, error } = await supabase.from('app_transactions').select('*').order('date', { ascending: false });
+                const { data, error } = await supabaseClient.from('app_transactions').select('*').order('date', { ascending: false });
                 if (error) { console.error(error); return []; }
                 return data.map(dbTransToJs);
             },
             async getGoals() {
-                const { data, error } = await supabase.from('app_goals').select('*');
+                const { data, error } = await supabaseClient.from('app_goals').select('*');
                 if (error) { console.error(error); return []; }
                 return data.map(dbGoalToJs);
             },
             async getLogs() {
-                const { data, error } = await supabase.from('app_logs').select('*').order('created_at', { ascending: true });
+                const { data, error } = await supabaseClient.from('app_logs').select('*').order('created_at', { ascending: true });
                 if (error) { console.error(error); return []; }
                 return data.map(dbLogToJs);
             },
             async insertUser(u) {
-                const { error } = await supabase.from('app_users').insert({ id: u.id, email: u.email, password: u.password, name: u.name, role: u.role, status: u.status });
+                const { error } = await supabaseClient.from('app_users').insert({ id: u.id, email: u.email, password: u.password, name: u.name, role: u.role, status: u.status });
                 if (error) throw error;
             },
             async updateUser(id, fields) {
@@ -1150,84 +1150,84 @@
                 if ('role' in fields) dbFields.role = fields.role;
                 if ('status' in fields) dbFields.status = fields.status;
                 if ('password' in fields) dbFields.password = fields.password;
-                const { error } = await supabase.from('app_users').update(dbFields).eq('id', id);
+                const { error } = await supabaseClient.from('app_users').update(dbFields).eq('id', id);
                 if (error) throw error;
             },
             async deleteUser(id) {
-                const { error } = await supabase.from('app_users').delete().eq('id', id);
+                const { error } = await supabaseClient.from('app_users').delete().eq('id', id);
                 if (error) throw error;
             },
             async insertTransaction(t) {
-                const { error } = await supabase.from('app_transactions').insert({ id: t.id, user_id: t.userId, description: t.description, type: t.type, category: t.category, amount: t.amount, date: t.date });
+                const { error } = await supabaseClient.from('app_transactions').insert({ id: t.id, user_id: t.userId, description: t.description, type: t.type, category: t.category, amount: t.amount, date: t.date });
                 if (error) throw error;
             },
             async updateTransaction(id, fields) {
-                const { error } = await supabase.from('app_transactions').update(fields).eq('id', id);
+                const { error } = await supabaseClient.from('app_transactions').update(fields).eq('id', id);
                 if (error) throw error;
             },
             async deleteTransaction(id) {
-                const { error } = await supabase.from('app_transactions').delete().eq('id', id);
+                const { error } = await supabaseClient.from('app_transactions').delete().eq('id', id);
                 if (error) throw error;
             },
             async insertGoal(g) {
-                const { error } = await supabase.from('app_goals').insert({ id: g.id, user_id: g.userId, name: g.name, target_amount: g.targetAmount, current_amount: g.currentAmount, deadline: g.deadline, completed: g.completed });
+                const { error } = await supabaseClient.from('app_goals').insert({ id: g.id, user_id: g.userId, name: g.name, target_amount: g.targetAmount, current_amount: g.currentAmount, deadline: g.deadline, completed: g.completed });
                 if (error) throw error;
             },
             async updateGoal(id, fields) {
                 const dbFields = {};
                 if ('currentAmount' in fields) dbFields.current_amount = fields.currentAmount;
                 if ('completed' in fields) dbFields.completed = fields.completed;
-                const { error } = await supabase.from('app_goals').update(dbFields).eq('id', id);
+                const { error } = await supabaseClient.from('app_goals').update(dbFields).eq('id', id);
                 if (error) throw error;
             },
             async deleteGoal(id) {
-                const { error } = await supabase.from('app_goals').delete().eq('id', id);
+                const { error } = await supabaseClient.from('app_goals').delete().eq('id', id);
                 if (error) throw error;
             },
             async insertLog(action, userEmail) {
-                const { error } = await supabase.from('app_logs').insert({ action: action, user_email: userEmail });
+                const { error } = await supabaseClient.from('app_logs').insert({ action: action, user_email: userEmail });
                 if (error) console.error(error);
             },
             async clearLogs() {
-                const { error } = await supabase.from('app_logs').delete().gt('id', 0);
+                const { error } = await supabaseClient.from('app_logs').delete().gt('id', 0);
                 if (error) throw error;
             },
             async getBackups() {
-                const { data, error } = await supabase.from('app_backups').select('*').order('id', { ascending: false });
+                const { data, error } = await supabaseClient.from('app_backups').select('*').order('id', { ascending: false });
                 if (error) { console.error(error); return []; }
                 return data;
             },
             async insertBackup(backupDate, dataObj) {
-                const { error } = await supabase.from('app_backups').insert({ backup_date: backupDate, data: dataObj });
+                const { error } = await supabaseClient.from('app_backups').insert({ backup_date: backupDate, data: dataObj });
                 if (error) throw error;
             },
             async deleteBackupRow(id) {
-                const { error } = await supabase.from('app_backups').delete().eq('id', id);
+                const { error } = await supabaseClient.from('app_backups').delete().eq('id', id);
                 if (error) throw error;
             },
             async restoreFromBackup(dataObj) {
-                await supabase.from('app_transactions').delete().gt('id', 0);
-                await supabase.from('app_goals').delete().gt('id', 0);
-                await supabase.from('app_logs').delete().gt('id', 0);
-                await supabase.from('app_users').delete().gt('id', 0);
+                await supabaseClient.from('app_transactions').delete().gt('id', 0);
+                await supabaseClient.from('app_goals').delete().gt('id', 0);
+                await supabaseClient.from('app_logs').delete().gt('id', 0);
+                await supabaseClient.from('app_users').delete().gt('id', 0);
 
                 if (dataObj.users && dataObj.users.length) {
-                    await supabase.from('app_users').insert(dataObj.users.map(u => ({ id: u.id, email: u.email, password: u.password, name: u.name, role: u.role, status: u.status, created_at: u.createdAt })));
+                    await supabaseClient.from('app_users').insert(dataObj.users.map(u => ({ id: u.id, email: u.email, password: u.password, name: u.name, role: u.role, status: u.status, created_at: u.createdAt })));
                 }
                 if (dataObj.transactions && dataObj.transactions.length) {
-                    await supabase.from('app_transactions').insert(dataObj.transactions.map(t => ({ id: t.id, user_id: t.userId, description: t.description, type: t.type, category: t.category, amount: t.amount, date: t.date })));
+                    await supabaseClient.from('app_transactions').insert(dataObj.transactions.map(t => ({ id: t.id, user_id: t.userId, description: t.description, type: t.type, category: t.category, amount: t.amount, date: t.date })));
                 }
                 if (dataObj.goals && dataObj.goals.length) {
-                    await supabase.from('app_goals').insert(dataObj.goals.map(g => ({ id: g.id, user_id: g.userId, name: g.name, target_amount: g.targetAmount, current_amount: g.currentAmount, deadline: g.deadline, completed: g.completed })));
+                    await supabaseClient.from('app_goals').insert(dataObj.goals.map(g => ({ id: g.id, user_id: g.userId, name: g.name, target_amount: g.targetAmount, current_amount: g.currentAmount, deadline: g.deadline, completed: g.completed })));
                 }
                 if (dataObj.logs && dataObj.logs.length) {
-                    await supabase.from('app_logs').insert(dataObj.logs.map(l => ({ action: l.action, user_email: l.user })));
+                    await supabaseClient.from('app_logs').insert(dataObj.logs.map(l => ({ action: l.action, user_email: l.user })));
                 }
             },
             async resetData() {
-                await supabase.from('app_transactions').delete().gt('id', 0);
-                await supabase.from('app_goals').delete().gt('id', 0);
-                await supabase.from('app_logs').delete().gt('id', 0);
+                await supabaseClient.from('app_transactions').delete().gt('id', 0);
+                await supabaseClient.from('app_goals').delete().gt('id', 0);
+                await supabaseClient.from('app_logs').delete().gt('id', 0);
             }
         };
 
@@ -1327,7 +1327,7 @@
             msg.textContent = '⏳ Verificando...';
             msg.className = 'login-message';
 
-            const { data: user, error } = await supabase.from('app_users').select('*').eq('email', email).maybeSingle();
+            const { data: user, error } = await supabaseClient.from('app_users').select('*').eq('email', email).maybeSingle();
 
             if (error) {
                 msg.textContent = '❌ Erro de conexão: ' + error.message;
@@ -1383,7 +1383,7 @@
             msg.textContent = '⏳ Verificando...';
             msg.className = 'login-message';
 
-            const { data: existing, error: checkError } = await supabase.from('app_users').select('id').eq('email', email).maybeSingle();
+            const { data: existing, error: checkError } = await supabaseClient.from('app_users').select('id').eq('email', email).maybeSingle();
             if (checkError) {
                 msg.textContent = '❌ Erro de conexão: ' + checkError.message;
                 msg.className = 'login-message error';
@@ -1770,7 +1770,7 @@
 
             msgBox.innerHTML = `<div class="login-message">⏳ Verificando...</div>`;
 
-            const { data: existing, error: checkError } = await supabase.from('app_users').select('id').eq('email', email).maybeSingle();
+            const { data: existing, error: checkError } = await supabaseClient.from('app_users').select('id').eq('email', email).maybeSingle();
             if (checkError) {
                 msgBox.innerHTML = `<div class="login-message error">❌ Erro: ${checkError.message}</div>`;
                 return;
