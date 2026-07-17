@@ -145,18 +145,20 @@
         }
 
         .user-info {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(255,255,255,0.2);
+            position: relative;
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto 15px auto;
+            background: rgba(255,255,255,0.15);
             color: white;
             padding: 12px 20px;
-            border-radius: 20px;
+            border-radius: 15px;
             font-weight: bold;
-            z-index: 1001;
             display: flex;
             align-items: center;
+            justify-content: flex-end;
             gap: 15px;
+            flex-wrap: wrap;
         }
 
         .user-info button {
@@ -186,6 +188,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         header h1 {
@@ -196,6 +200,8 @@
         .header-controls {
             display: flex;
             gap: 15px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
         }
 
         button {
@@ -595,6 +601,20 @@
         </div>
     </div>
 
+    <!-- CAIXA DE DIÁLOGO PERSONALIZADA (substitui confirm/alert/prompt do navegador) -->
+    <div id="customDialogOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.55); z-index: 70000; align-items: center; justify-content: center; padding: 20px;">
+        <div style="background: white; padding: 28px; border-radius: 15px; max-width: 420px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">
+            <p id="customDialogMessage" style="margin-bottom: 20px; color: #333; white-space: pre-wrap; line-height: 1.5;"></p>
+            <div id="customDialogPromptWrap" style="display: none; margin-bottom: 20px;">
+                <input type="text" id="customDialogInput" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1em;">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button id="customDialogOk" class="btn-add" style="flex: 1;">OK</button>
+                <button id="customDialogCancel" style="flex: 1; background: #ccc; color: #333;">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- LOGIN -->
     <div id="loginScreen" class="login-container">
         <div class="login-box">
@@ -617,9 +637,6 @@
                     <input type="password" id="loginPassword" placeholder="••••••••">
                 </div>
                 <button onclick="login()">🔓 Entrar</button>
-                <div style="text-align: center; margin-top: 15px; font-size: 0.9em; color: #999;">
-                    Demo: email: admin@teste.com | senha: 123456
-                </div>
             </div>
 
             <!-- REGISTRO -->
@@ -1123,22 +1140,22 @@
         const db = {
             async getUsers() {
                 const { data, error } = await supabaseClient.from('app_users').select('*').order('id');
-                if (error) { console.error(error); showMessage('❌ Erro ao carregar usuários: ' + error.message, 'error'); return []; }
+                if (error) { console.error(error && error.message ? error.message : String(error)); showMessage('❌ Erro ao carregar usuários: ' + error.message, 'error'); return []; }
                 return data.map(dbUserToJs);
             },
             async getTransactions() {
                 const { data, error } = await supabaseClient.from('app_transactions').select('*').order('date', { ascending: false });
-                if (error) { console.error(error); return []; }
+                if (error) { console.error(error && error.message ? error.message : String(error)); return []; }
                 return data.map(dbTransToJs);
             },
             async getGoals() {
                 const { data, error } = await supabaseClient.from('app_goals').select('*');
-                if (error) { console.error(error); return []; }
+                if (error) { console.error(error && error.message ? error.message : String(error)); return []; }
                 return data.map(dbGoalToJs);
             },
             async getLogs() {
                 const { data, error } = await supabaseClient.from('app_logs').select('*').order('created_at', { ascending: true });
-                if (error) { console.error(error); return []; }
+                if (error) { console.error(error && error.message ? error.message : String(error)); return []; }
                 return data.map(dbLogToJs);
             },
             async insertUser(u) {
@@ -1186,7 +1203,7 @@
             },
             async insertLog(action, userEmail) {
                 const { error } = await supabaseClient.from('app_logs').insert({ action: action, user_email: userEmail });
-                if (error) console.error(error);
+                if (error) console.error(error && error.message ? error.message : String(error));
             },
             async clearLogs() {
                 const { error } = await supabaseClient.from('app_logs').delete().gt('id', 0);
@@ -1194,7 +1211,7 @@
             },
             async getBackups() {
                 const { data, error } = await supabaseClient.from('app_backups').select('*').order('id', { ascending: false });
-                if (error) { console.error(error); return []; }
+                if (error) { console.error(error && error.message ? error.message : String(error)); return []; }
                 return data;
             },
             async insertBackup(backupDate, dataObj) {
@@ -1231,6 +1248,75 @@
             }
         };
 
+        // ===== CAIXA DE DIÁLOGO PERSONALIZADA =====
+        // Substitui window.confirm/alert/prompt, que ficam bloqueados dentro de previews
+        // sandboxed (como o preview do Claude). Funciona em qualquer lugar.
+        function customAlert(message) {
+            return new Promise(resolve => {
+                const overlay = document.getElementById('customDialogOverlay');
+                document.getElementById('customDialogMessage').textContent = message;
+                document.getElementById('customDialogPromptWrap').style.display = 'none';
+                const okBtn = document.getElementById('customDialogOk');
+                const cancelBtn = document.getElementById('customDialogCancel');
+                okBtn.textContent = 'OK';
+                cancelBtn.style.display = 'none';
+                overlay.style.display = 'flex';
+                const cleanup = () => {
+                    overlay.style.display = 'none';
+                    okBtn.onclick = null;
+                    cancelBtn.style.display = 'flex';
+                };
+                okBtn.onclick = () => { cleanup(); resolve(); };
+            });
+        }
+
+        function customConfirm(message) {
+            return new Promise(resolve => {
+                const overlay = document.getElementById('customDialogOverlay');
+                document.getElementById('customDialogMessage').textContent = message;
+                document.getElementById('customDialogPromptWrap').style.display = 'none';
+                const okBtn = document.getElementById('customDialogOk');
+                const cancelBtn = document.getElementById('customDialogCancel');
+                okBtn.textContent = 'Confirmar';
+                cancelBtn.style.display = 'flex';
+                overlay.style.display = 'flex';
+                const cleanup = () => {
+                    overlay.style.display = 'none';
+                    okBtn.onclick = null;
+                    cancelBtn.onclick = null;
+                };
+                okBtn.onclick = () => { cleanup(); resolve(true); };
+                cancelBtn.onclick = () => { cleanup(); resolve(false); };
+            });
+        }
+
+        function customPrompt(message, defaultValue) {
+            return new Promise(resolve => {
+                const overlay = document.getElementById('customDialogOverlay');
+                document.getElementById('customDialogMessage').textContent = message;
+                const wrap = document.getElementById('customDialogPromptWrap');
+                const input = document.getElementById('customDialogInput');
+                wrap.style.display = 'block';
+                input.value = (defaultValue !== undefined && defaultValue !== null) ? String(defaultValue) : '';
+                const okBtn = document.getElementById('customDialogOk');
+                const cancelBtn = document.getElementById('customDialogCancel');
+                okBtn.textContent = 'OK';
+                cancelBtn.style.display = 'flex';
+                overlay.style.display = 'flex';
+                setTimeout(() => input.focus(), 50);
+                const cleanup = () => {
+                    overlay.style.display = 'none';
+                    wrap.style.display = 'none';
+                    okBtn.onclick = null;
+                    cancelBtn.onclick = null;
+                    input.onkeydown = null;
+                };
+                okBtn.onclick = () => { const val = input.value; cleanup(); resolve(val); };
+                cancelBtn.onclick = () => { cleanup(); resolve(null); };
+                input.onkeydown = (e) => { if (e.key === 'Enter') { const val = input.value; cleanup(); resolve(val); } };
+            });
+        }
+
         // ===== VARIÁVEIS GLOBAIS =====
         let transactions = [];
         let goals = [];
@@ -1256,8 +1342,14 @@
         function updateBackendBadge() {
             const badge = document.getElementById('backendBadge');
             if (!badge) return;
-            badge.textContent = '🌐 Conectado ao Supabase (backend real)';
-            badge.style.background = 'rgba(81, 207, 102, 0.25)';
+            if (currentUser && currentUser.role === 'admin') {
+                badge.textContent = '🌐 Conectado ao Supabase (backend real)';
+                badge.style.background = 'rgba(81, 207, 102, 0.25)';
+                badge.style.display = 'inline-block';
+            } else {
+                badge.textContent = '';
+                badge.style.display = 'none';
+            }
         }
 
         // ===== INICIALIZAÇÃO =====
@@ -1267,12 +1359,11 @@
                 return;
             }
             showGlobalLoading(true);
-            updateBackendBadge();
             try {
                 await loadAllData();
             } catch (e) {
                 showGlobalLoading(false);
-                alert('❌ Não foi possível conectar ao Supabase. Verifique a URL/chave e se rodou o SQL de configuração.\n\n' + e.message);
+                await customAlert('❌ Não foi possível conectar ao Supabase. Verifique a URL/chave e se rodou o SQL de configuração.\n\n' + e.message);
                 return;
             }
             checkAuth();
@@ -1412,8 +1503,8 @@
             }, 1500);
         }
 
-        function logout() {
-            if (confirm('Tem certeza que deseja sair?')) {
+        async function logout() {
+            if (await customConfirm('Tem certeza que deseja sair?')) {
                 db.insertLog(`Logout realizado por ${currentUser.email}`, currentUser.email);
                 localStorage.removeItem('currentUser');
                 currentUser = null;
@@ -1425,6 +1516,7 @@
         function updateUserDisplay() {
             const role = currentUser.role === 'admin' ? '👨‍💼 Admin' : '👤 Usuário';
             document.getElementById('userDisplay').textContent = `${currentUser.name} (${role})`;
+            updateBackendBadge();
             
             if (currentUser.role === 'admin') {
                 const headerControls = document.querySelector('header .header-controls');
@@ -1530,7 +1622,7 @@
 
         async function loadAdminPanel() {
             if (currentUser.role !== 'admin') {
-                alert('❌ Acesso negado!');
+                await customAlert('❌ Acesso negado!');
                 return;
             }
 
@@ -1634,7 +1726,7 @@
                     await db.insertLog(`Papel do usuário ${user.email} alterado para ${newRole}`, currentUser.email);
                     loadUsersTable();
                 } catch (e) {
-                    alert('❌ Erro: ' + e.message);
+                    await customAlert('❌ Erro: ' + e.message);
                 }
             }
         }
@@ -1649,7 +1741,7 @@
                     await db.insertLog(`Status do usuário ${user.email} alterado para ${statusLabel[newStatus]}`, currentUser.email);
                     loadUsersTable();
                 } catch (e) {
-                    alert('❌ Erro: ' + e.message);
+                    await customAlert('❌ Erro: ' + e.message);
                 }
             }
         }
@@ -1795,21 +1887,21 @@
             await loadAllData();
             loadUsersTable();
             loadAdminDashboard();
-            alert('✅ Conta criada com sucesso! A pessoa já pode fazer login com este email e senha, de qualquer dispositivo.');
+            await customAlert('✅ Conta criada com sucesso! A pessoa já pode fazer login com este email e senha, de qualquer dispositivo.');
         }
 
         async function deleteUser(userId) {
-            if (confirm('❌ Deletar este usuário permanentemente?')) {
-                if (confirm('ATENÇÃO! Isto também deletará todas as suas transações e metas!')) {
+            if (await customConfirm('❌ Deletar este usuário permanentemente?')) {
+                if (await customConfirm('ATENÇÃO! Isto também deletará todas as suas transações e metas!')) {
                     const user = users.find(u => u.id === userId);
                     try {
                         await db.deleteUser(userId); // cascade apaga transações e metas no banco
                     } catch (e) {
-                        alert('❌ Erro ao deletar: ' + e.message);
+                        await customAlert('❌ Erro ao deletar: ' + e.message);
                         return;
                     }
                     await db.insertLog(`Usuário ${user.email} e todos seus dados foram deletados`, currentUser.email);
-                    alert('✅ Usuário deletado!');
+                    await customAlert('✅ Usuário deletado!');
                     await loadAllData();
                     loadUsersTable();
                     loadAdminTransactions();
@@ -1848,36 +1940,36 @@
 
         async function editTransaction(transId) {
             const trans = transactions.find(t => t.id === transId);
-            const newAmount = prompt(`Editar valor de R$ ${trans.amount.toFixed(2)}:`, trans.amount);
+            const newAmount = await customPrompt(`Editar valor de R$ ${trans.amount.toFixed(2)}:`, trans.amount);
             
             if (newAmount !== null && newAmount !== '' && !isNaN(newAmount)) {
                 const oldAmount = trans.amount;
                 try {
                     await db.updateTransaction(transId, { amount: parseFloat(newAmount) });
                 } catch (e) {
-                    alert('❌ Erro: ' + e.message);
+                    await customAlert('❌ Erro: ' + e.message);
                     return;
                 }
                 trans.amount = parseFloat(newAmount);
                 await db.insertLog(`Transação "${trans.description}" editada de R$ ${oldAmount.toFixed(2)} para R$ ${trans.amount.toFixed(2)}`, currentUser.email);
-                alert('✅ Transação atualizada!');
+                await customAlert('✅ Transação atualizada!');
                 loadAdminTransactions();
                 loadAdminDashboard();
             }
         }
 
         async function deleteTransactionAdmin(transId) {
-            if (confirm('❌ Deletar esta transação?')) {
+            if (await customConfirm('❌ Deletar esta transação?')) {
                 const trans = transactions.find(t => t.id === transId);
                 try {
                     await db.deleteTransaction(transId);
                 } catch (e) {
-                    alert('❌ Erro: ' + e.message);
+                    await customAlert('❌ Erro: ' + e.message);
                     return;
                 }
                 transactions = transactions.filter(t => t.id !== transId);
                 await db.insertLog(`Transação "${trans.description}" (R$ ${trans.amount}) deletada pelo admin`, currentUser.email);
-                alert('✅ Transação deletada!');
+                await customAlert('✅ Transação deletada!');
                 loadAdminTransactions();
                 loadAdminDashboard();
             }
@@ -1913,7 +2005,7 @@
 
         async function editGoalAdmin(goalId) {
             const goal = goals.find(g => g.id === goalId);
-            const newAmount = prompt(`Editar progresso de R$ ${goal.currentAmount.toFixed(2)}:`, goal.currentAmount);
+            const newAmount = await customPrompt(`Editar progresso de R$ ${goal.currentAmount.toFixed(2)}:`, goal.currentAmount);
             
             if (newAmount !== null && newAmount !== '' && !isNaN(newAmount)) {
                 const oldAmount = goal.currentAmount;
@@ -1922,30 +2014,30 @@
                 try {
                     await db.updateGoal(goalId, { currentAmount: parsedAmount, completed: completed });
                 } catch (e) {
-                    alert('❌ Erro: ' + e.message);
+                    await customAlert('❌ Erro: ' + e.message);
                     return;
                 }
                 goal.currentAmount = parsedAmount;
                 goal.completed = completed;
                 await db.insertLog(`Meta "${goal.name}" progresso alterado de R$ ${oldAmount.toFixed(2)} para R$ ${goal.currentAmount.toFixed(2)}`, currentUser.email);
-                alert('✅ Meta atualizada!');
+                await customAlert('✅ Meta atualizada!');
                 loadAdminGoals();
                 loadAdminDashboard();
             }
         }
 
         async function deleteGoalAdmin(goalId) {
-            if (confirm('❌ Deletar esta meta?')) {
+            if (await customConfirm('❌ Deletar esta meta?')) {
                 const goal = goals.find(g => g.id === goalId);
                 try {
                     await db.deleteGoal(goalId);
                 } catch (e) {
-                    alert('❌ Erro: ' + e.message);
+                    await customAlert('❌ Erro: ' + e.message);
                     return;
                 }
                 goals = goals.filter(g => g.id !== goalId);
                 await db.insertLog(`Meta "${goal.name}" deletada pelo admin`, currentUser.email);
-                alert('✅ Meta deletada!');
+                await customAlert('✅ Meta deletada!');
                 loadAdminGoals();
                 loadAdminDashboard();
             }
@@ -1978,17 +2070,17 @@
         }
 
         async function clearLogs() {
-            if (confirm('Tem certeza que deseja limpar todos os logs?')) {
+            if (await customConfirm('Tem certeza que deseja limpar todos os logs?')) {
                 try {
                     await db.clearLogs();
                 } catch (e) {
-                    alert('❌ Erro: ' + e.message);
+                    await customAlert('❌ Erro: ' + e.message);
                     return;
                 }
                 logs = [];
                 loadLogs();
                 await db.insertLog('Logs limpos pelo administrador', currentUser.email);
-                alert('✅ Logs limpos!');
+                await customAlert('✅ Logs limpos!');
             }
         }
 
@@ -2028,70 +2120,70 @@
             try {
                 await db.insertBackup(new Date().toLocaleString('pt-BR'), backupData);
             } catch (e) {
-                alert('❌ Erro ao criar backup: ' + e.message);
+                await customAlert('❌ Erro ao criar backup: ' + e.message);
                 return;
             }
             await db.insertLog('Backup do sistema criado pelo admin', currentUser.email);
-            alert('✅ Backup criado com sucesso!');
+            await customAlert('✅ Backup criado com sucesso!');
             await loadBackupsList();
             loadAdminDashboard();
         }
 
         async function restoreBackup(backupId) {
-            if (confirm('⚠️ Restaurar este backup? Os dados atuais serão substituídos!')) {
+            if (await customConfirm('⚠️ Restaurar este backup? Os dados atuais serão substituídos!')) {
                 const rows = await db.getBackups();
                 const row = rows.find(r => r.id === backupId);
-                if (!row) { alert('❌ Backup não encontrado.'); return; }
+                if (!row) { await customAlert('❌ Backup não encontrado.'); return; }
                 try {
                     await db.restoreFromBackup(row.data);
                 } catch (e) {
-                    alert('❌ Erro ao restaurar: ' + e.message);
+                    await customAlert('❌ Erro ao restaurar: ' + e.message);
                     return;
                 }
                 await db.insertLog(`Backup restaurado: ${row.backup_date}`, currentUser.email);
-                alert('✅ Backup restaurado com sucesso!');
+                await customAlert('✅ Backup restaurado com sucesso!');
                 location.reload();
             }
         }
 
         async function deleteBackup(backupId) {
-            if (confirm('❌ Deletar este backup permanentemente?')) {
+            if (await customConfirm('❌ Deletar este backup permanentemente?')) {
                 try {
                     await db.deleteBackupRow(backupId);
                 } catch (e) {
-                    alert('❌ Erro: ' + e.message);
+                    await customAlert('❌ Erro: ' + e.message);
                     return;
                 }
-                alert('✅ Backup deletado!');
+                await customAlert('✅ Backup deletado!');
                 await loadBackupsList();
             }
         }
 
         async function changeAdminPassword() {
-            const currentPassword = prompt('Digite sua senha atual:');
+            const currentPassword = await customPrompt('Digite sua senha atual:');
             if (!currentPassword) return;
 
             const adminUser = users.find(u => u.id === currentUser.id);
             if (adminUser.password !== currentPassword) {
-                alert('❌ Senha incorreta!');
+                await customAlert('❌ Senha incorreta!');
                 return;
             }
 
-            const newPassword = prompt('Digite a nova senha:');
+            const newPassword = await customPrompt('Digite a nova senha:');
             if (!newPassword) return;
 
             try {
                 await db.updateUser(currentUser.id, { password: newPassword });
             } catch (e) {
-                alert('❌ Erro: ' + e.message);
+                await customAlert('❌ Erro: ' + e.message);
                 return;
             }
             adminUser.password = newPassword;
             await db.insertLog(`Senha do admin alterada`, currentUser.email);
-            alert('✅ Senha alterada com sucesso!');
+            await customAlert('✅ Senha alterada com sucesso!');
         }
 
-        function exportAllData() {
+        async function exportAllData() {
             const data = {
                 users: users,
                 transactions: transactions,
@@ -2109,23 +2201,23 @@
             link.click();
             document.body.removeChild(link);
             db.insertLog('Todos os dados exportados pelo admin', currentUser.email);
-            alert('✅ Dados exportados!');
+            await customAlert('✅ Dados exportados!');
         }
 
         async function resetAllData() {
-            if (confirm('⚠️ ATENÇÃO! Isto vai deletar TUDO permanentemente. Tem certeza?')) {
-                if (confirm('Tem MUITA certeza? Esta ação não pode ser desfeita!')) {
+            if (await customConfirm('⚠️ ATENÇÃO! Isto vai deletar TUDO permanentemente. Tem certeza?')) {
+                if (await customConfirm('Tem MUITA certeza? Esta ação não pode ser desfeita!')) {
                     try {
                         await db.resetData();
                     } catch (e) {
-                        alert('❌ Erro: ' + e.message);
+                        await customAlert('❌ Erro: ' + e.message);
                         return;
                     }
                     transactions = [];
                     goals = [];
                     logs = [];
                     await db.insertLog('SISTEMA RESETADO COMPLETAMENTE PELO ADMIN', currentUser.email);
-                    alert('✅ Dados resetados!');
+                    await customAlert('✅ Dados resetados!');
                     location.reload();
                 }
             }
@@ -2182,7 +2274,7 @@
         }
 
         async function deleteTransaction(id) {
-            if (confirm('Tem certeza que deseja deletar esta transação?')) {
+            if (await customConfirm('Tem certeza que deseja deletar esta transação?')) {
                 try {
                     await db.deleteTransaction(id);
                 } catch (e) {
@@ -2484,10 +2576,10 @@
             preview.innerHTML = html;
         }
 
-        function exportCSV() {
+        async function exportCSV() {
             const myTransactions = getMyTransactions();
             if (myTransactions.length === 0) {
-                alert('Nenhuma transação para exportar!');
+                await customAlert('Nenhuma transação para exportar!');
                 return;
             }
 
@@ -2501,10 +2593,10 @@
             showMessage('✅ CSV exportado com sucesso!', 'success');
         }
 
-        function exportJSON() {
+        async function exportJSON() {
             const myTransactions = getMyTransactions();
             if (myTransactions.length === 0) {
-                alert('Nenhuma transação para exportar!');
+                await customAlert('Nenhuma transação para exportar!');
                 return;
             }
 
@@ -2574,7 +2666,7 @@
         }
 
         async function deleteGoal(id) {
-            if (confirm('Deletar esta meta?')) {
+            if (await customConfirm('Deletar esta meta?')) {
                 try {
                     await db.deleteGoal(id);
                 } catch (e) {
